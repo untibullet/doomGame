@@ -1,11 +1,4 @@
-#include <string>
-#define _USE_MATH_DEFINES
-#include <math.h>
-
-#include <SFML/System/Vector2.hpp>
-
-#include "func.h"
-#include "classes.h"
+#include "include.h"
 
 using namespace objects;
 
@@ -19,18 +12,31 @@ const sf::Color GROUNG_COLOR = sf::Color(100, 100, 100);
 const sf::Color SKYBOX_COLOR = sf::Color(35, 87, 97);
 const sf::Color WALL_COLOR = sf::Color::Blue;
 
-Vector2f defaultPlayerPos = Vector2f(8.f, 3.f);
+Vector2f defaultPlayerPos = Vector2f(5.f, 0.f);
 float defaultPlayerFAngle = M_PI / 2;
+
+const Vector2f WALLS[4] = {Vector2f(0.f, 3.f), Vector2f(4.f, 2.f), 
+Vector2f(4.f, 2.f), Vector2f(4.f, 6.f)};
 
 
 Game::Game() {
 	Game::player.set_default(defaultPlayerPos, defaultPlayerFAngle, FOV);
 	Game::state.set_type("InGameplay");
-	Game::deltaAngle = (float) FOV / COUNT_OF_RAYS;
+	Game::deltaAngle = Game::player.rfov / COUNT_OF_RAYS;
+}
+
+Level Game::loadLevel(std::string levelName) {
+	Level level;
+	level.countOfWalls = 2;
+	for (int i = 0; i < level.countOfWalls; i++) {
+		level.walls[i].set_parameters(WALLS[i * 2], WALLS[i * 2 + 1]);
+	}
+
+	return level;
 }
 
 void Game::render(RenderWindow& win) {
-	drawBackGround(win);
+	// drawBackGround(win);
 
 	drawWalls(win);
 
@@ -57,6 +63,8 @@ void Game::drawWalls(RenderWindow& win) {
 	Player player = Game::player;
 	float maxAngle = player.centralAngle + player.rfov / 2;
 
+	Vector2u winSize = win.getSize();
+
 	// int countOfWallsAround = Game::player.countOfWallsAround;
 	
 	for (short ray = 0; ray < COUNT_OF_RAYS; ray++) {
@@ -66,22 +74,36 @@ void Game::drawWalls(RenderWindow& win) {
 
 		Wall wall = Game::level.walls[0];
 		float distance = Game::renderingRadius;
+		float tmp;
 		Vector2f crossingPoint;
+		bool haveWall = false;
+		bool isCrossing = false;
 		for (int nwall = 0; nwall < player.countOfWallsAround; nwall++) {
-			wall = Game::player.wallsAround[nwall];
+			wall = Game::level.walls[nwall]; // Game::player.wallsAround
 
-			bool isCrossing = false;
-			crossingPoint = checkCrossing(player.position, player.centralAngle, wall.leftPos, wall.rightPos, isCrossing);
+			crossingPoint = checkCrossing(player.position, angle, wall.leftPos, wall.rightPos, isCrossing);
+
+			if (!haveWall && isCrossing) haveWall = true;
 
 			if (!isCrossing) continue;
 
-			distance = getDistance(player.position, crossingPoint);
-			
+			tmp = getDistance(player.position, crossingPoint);
+			if (tmp < distance) distance = tmp;
 		}
+
+		if (!haveWall) continue;
+
+		short stepInPixels = winSize.x / COUNT_OF_RAYS;
+		short rectHeight = (((float)NORMAL_DISTANCE / distance) * (winSize.y * NORMAL_WALL_SIZE));
+		short rectY = winSize.y / 2 - rectHeight / 2;
+		sf::RectangleShape rectShape = sf::RectangleShape(Vector2f(stepInPixels, rectHeight));
+		rectShape.setFillColor(sf::Color::Blue);
+		rectShape.setPosition(ray * stepInPixels, rectY);
+		win.draw(rectShape);
 	}
 }
 
-Vector2f checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector2f p2, bool& isCrossing) {
+Vector2f Game::checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector2f p2, bool& isCrossing) {
 	Vector2f crossingPoint;
 
 	float xs = startPos.x, ys = startPos.y;
@@ -95,12 +117,14 @@ Vector2f checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector2f p2,
 		isCrossing = false;
 		return crossingPoint;
 	}
-
-	float x = (k1 * xs - k2 * x1 + y1 - ys) / (k1 - k2);
+	float x;
+	if (x1 == x2) x = x1;
+	else x = (k1 * xs - k2 * x1 + y1 - ys) / (k1 - k2);
+	
 	float y = k1 * (x - xs) + ys;
 
-	bool conditionX = x1 <= x <= x2;
-	bool conditionY = y1 <= y <= y2;
+	bool conditionX = std::min(x1, x2) <= x && std::max(x1, x2) >= x;
+	bool conditionY = std::min(y1, y2) <=y && std::max(y1, y2) >= y;
 	if (conditionX && conditionY) {
 		isCrossing = true;
 		crossingPoint = Vector2f(x, y);
@@ -121,13 +145,14 @@ void Player::set_default(Vector2f position, float angle, short fov) {
 	Player::direction = Vector2f(cos(angle), sin(angle));
 	Player::fov = fov;
 	Player::rfov = (fov * M_PI) / 180;
+	Player::countOfWallsAround = 2;
 }
 
 void State::set_type(string name) {
 	State::name = name;
 }
 
-Wall::Wall(Vector2f leftPos, Vector2f rightPos) {
+void Wall::set_parameters(Vector2f leftPos, Vector2f rightPos) {
 	Wall::leftPos = leftPos;
 	Wall::rightPos = rightPos;
 	Wall::length = getDistance(leftPos, rightPos);

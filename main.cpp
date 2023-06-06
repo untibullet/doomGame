@@ -1,11 +1,4 @@
-#include <SFML/Graphics.hpp>
-
-#include <iostream>
-#define _USE_MATH_DEFINES
-#include <math.h>
-
-#include "func.h"
-#include "classes.h"
+#include "include.h"
 
 using sf::Vector2f;
 using sf::Vector2i;
@@ -40,11 +33,11 @@ int main()
                 window.close();
         }
 
-        //game.update();
+        // game.update();
 
         window.clear();
 
-        //game.render(window);
+        game.render(window);
 
         window.display();
     }

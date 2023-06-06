@@ -1,10 +1,6 @@
 #pragma once
 
-#include <string>
-#include <time.h>
-
-#include <SFML/Graphics.hpp>
-#include <SFML/System/Vector2.hpp>
+#include "include.h"
 
 using sf::Vector2f;
 
@@ -25,7 +21,7 @@ namespace objects {
 
 	class Wall {
 	public:
-		Wall(Vector2f leftPos, Vector2f rightPos);
+		void set_parameters(Vector2f leftPos, Vector2f rightPos);
 
 		Vector2f leftPos;
 		Vector2f rightPos;
@@ -36,6 +32,7 @@ namespace objects {
 	public:
 		std::string levelAddres;
 		std::string levelName;
+		int countOfWalls;
 		Wall walls[MAX_COUNT_OF_WALLS];
 	};
 
@@ -48,8 +45,6 @@ namespace objects {
 
 	class Player {
 	public:
-		Player();
-
 		void set_default(Vector2f position, float angle, short fov);
 
 		short fov;
@@ -76,8 +71,6 @@ namespace objects {
 
 		Vector2f checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector2f p2, bool& isCrossing);
 
-		float getDistance(Vector2f p1, Vector2f p2);
-
 		void drawSprites(sf::RenderWindow& win);
 
 		void drawInterface(sf::RenderWindow& win);
@@ -87,10 +80,11 @@ namespace objects {
 		template <typename T>
 		void movementController(T movingObject, float angle, __time32_t time);
 
-		Player player = Player();
-		State state = State();
+		Player player;
+		State state;
 		std::string levels[COUNT_OF_LEVELS];
 		Level level = loadLevel(START_LEVEL);
+
 		float deltaAngle;
 		float renderingRadius = 10;
 	};

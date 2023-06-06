@@ -1,10 +1,4 @@
-#include <string>
-#define _USE_MATH_DEFINES
-#include <math.h>
-
-#include <SFML/System/Vector2.hpp>
-
-#include "func.h"
+#include "include.h"
 
 using sf::Vector2f;
 
