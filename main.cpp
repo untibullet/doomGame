@@ -31,10 +31,6 @@ int main()
 
     Game game = Game();
 
-    Vector2f size = Vector2f(2.f, 2.f);
-    Wall walls[] = { Wall(Vector2f(5.f, 8.f), size), Wall(Vector2f(5.f, 10.f), size),
-    Wall(Vector2f(9.f, 9.f), size), Wall(Vector2f(11.f, 7.f), size) };
-
     while (window.isOpen())
     {
         sf::Event event;
@@ -44,18 +40,11 @@ int main()
                 window.close();
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-            player.centralAngle += 0.1;
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-            player.centralAngle -= 0.1;
-        }
-
-        game.update();
+        //game.update();
 
         window.clear();
 
-        game.render(window);
+        //game.render(window);
 
         window.display();
     }
