@@ -19,8 +19,10 @@ const sf::Color WALL_COLOR = sf::Color::Blue;
 Vector2f defaultPlayerPos = Vector2f(5.f, 0.f);
 float defaultPlayerFAngle = 3 * M_PI / 2;
 
-const Vector2f WALLS[4] = {Vector2f(0.f, 3.f), Vector2f(4.f, 2.f), 
-Vector2f(4.f, 2.f), Vector2f(4.f, 6.f)};
+const Vector2f WALLS[14] = {Vector2f(0.f, 3.f), Vector2f(4.f, 2.f), 
+Vector2f(4.f, 2.f), Vector2f(4.f, 6.f), Vector2f(0.f, 3.f), Vector2f(4.f, 6.f), 
+Vector2f(9.f, -5.f),
+Vector2f(9.f, 8.f), Vector2f(9.f, -5.f), Vector2f(-4.f, -5.f) };
 
 
 Game::Game() {
@@ -31,7 +33,7 @@ Game::Game() {
 
 Level Game::loadLevel(std::string levelName) {
 	Level level;
-	level.countOfWalls = 2;
+	level.countOfWalls = 5;
 	for (int i = 0; i < level.countOfWalls; i++) {
 		level.walls[i].set_parameters(WALLS[i * 2], WALLS[i * 2 + 1]);
 	}
@@ -175,7 +177,7 @@ void Game::drawWalls(RenderWindow& win) {
 			if (tmp < distance) distance = tmp;
 		}
 
-		if (!haveWall) continue;
+		if (!haveWall || distance >= Game::renderingRadius) continue;
 
 		short stepInPixels = winSize.x / COUNT_OF_RAYS;
 		short rectHeight = (((float)NORMAL_DISTANCE / distance) * (winSize.y * NORMAL_WALL_SIZE));
@@ -189,6 +191,7 @@ void Game::drawWalls(RenderWindow& win) {
 
 Vector2f Game::checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector2f p2, bool& isCrossing) {
 	Vector2f crossingPoint;
+	isCrossing = false;
 
 	float xs = startPos.x, ys = startPos.y;
 	float x1 = p1.x, y1 = p1.y;
@@ -197,15 +200,13 @@ Vector2f Game::checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector
 	float k1 = tan(angle);
 	float k2 = (y2 - y1) / (x2 - x1);
 
-	if (fabs(k1 - k2) < MIN_DEVIATION) {
-		isCrossing = false;
-		return crossingPoint;
-	}
 	float x;
 	if (x1 == x2) x = x1;
 	else x = (k1 * xs - k2 * x1 + y1 - ys) / (k1 - k2);
 	
-	float y = k1 * (x - xs) + ys;
+	float y;
+	if (y1 == y2) y = y1;
+	else y = k1 * (x - xs) + ys;
 
 	bool conditionAngle = false;
 	short tmp = angle / M_PI;
@@ -218,10 +219,8 @@ Vector2f Game::checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector
 	if (conditionX && conditionY && conditionAngle) {
 		isCrossing = true;
 		crossingPoint = Vector2f(x, y);
-		return crossingPoint;
 	}
-	
-	isCrossing = false;
+
 	return crossingPoint;
 }
 
@@ -235,7 +234,7 @@ void Player::set_default(Vector2f position, float angle, short fov) {
 	Player::direction = Vector2f(cos(angle), sin(angle));
 	Player::fov = fov;
 	Player::rfov = (fov * M_PI) / 180;
-	Player::countOfWallsAround = 2;
+	Player::countOfWallsAround = 5;
 }
 
 void State::set_type(string name) {

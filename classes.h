@@ -105,7 +105,7 @@ namespace objects {
 		std::string levels[COUNT_OF_LEVELS];
 		Level level = loadLevel(START_LEVEL);
 
-		float renderingRadius = 10;
+		float renderingRadius = 20;
 		float deltaAngle;
 
 		float mouseSpeedCoef = 0.75;

@@ -26,6 +26,7 @@ int main()
     sf::RenderWindow window(sf::VideoMode(width, height), "MyDoom[*_*]");
 
     Mouse mouse = Mouse();
+    window.setMouseCursorVisible(false);
 
     Game game = Game();
 
