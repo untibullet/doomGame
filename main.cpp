@@ -3,6 +3,11 @@
 using sf::Vector2f;
 using sf::Vector2i;
 using sf::Vector2u;
+using sf::Mouse;
+using sf::Keyboard;
+
+using std::string;
+
 using objects::Game;
 
 const short MAX_FPS = 60;
@@ -20,18 +25,40 @@ int main()
 
     sf::RenderWindow window(sf::VideoMode(width, height), "MyDoom[*_*]");
 
-    sf::Mouse mouse = sf::Mouse();
+    Mouse mouse = Mouse();
 
     Game game = Game();
 
+    sf::Clock clock;
+
     while (window.isOpen())
     {
+        float time = clock.getElapsedTime().asSeconds();
+        clock.restart();
+
         sf::Event event;
         while (window.pollEvent(event))
         {
             if (event.type == sf::Event::Closed)
                 window.close();
         }
+
+        game.viewController(window, mouse, time);
+
+        if (Keyboard::isKeyPressed(Keyboard::W)) {
+            game.movementController(Keyboard::W, time);
+        }
+        if (Keyboard::isKeyPressed(Keyboard::S)) {
+            game.movementController(Keyboard::S, time);
+        }
+        if (Keyboard::isKeyPressed(Keyboard::A)) {
+            game.movementController(Keyboard::A, time);
+        }
+        if (Keyboard::isKeyPressed(Keyboard::D)) {
+            game.movementController(Keyboard::D, time);
+        }
+
+        mouse.setPosition(game.centralMousePos);
 
         // game.update();
 

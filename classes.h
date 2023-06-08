@@ -3,8 +3,16 @@
 #include "include.h"
 
 using sf::Vector2f;
+using sf::Vector2i;
+using sf::Vector2u;
+using sf::Mouse;
+using sf::Keyboard;
+
+using std::string;
 
 namespace objects {
+	const short MAX_WIDTH = 1280, MAX_HEIGHT = 720;
+
 	const short FOV = 90;
 	const short COUNT_OF_RAYS = 180;
 
@@ -18,6 +26,9 @@ namespace objects {
 	const short COUNT_OF_LEVELS = 10;
 
 	const std::string START_LEVEL = "level1.txt";
+
+	const float PLAYER_SPEED = 2;
+	const float PLAYER_ROTATIONAL_SPEED = 0.1;
 
 	class Wall {
 	public:
@@ -54,6 +65,8 @@ namespace objects {
 		Vector2f direction;
 		int countOfWallsAround = 0;
 		Wall wallsAround[MAX_WALLS_AROUND];
+		float speed = PLAYER_SPEED;
+		float rotationalSpeed = PLAYER_ROTATIONAL_SPEED;
 
 	};
 
@@ -77,15 +90,25 @@ namespace objects {
 
 		void update();
 
+		void movementController(sf::Keyboard::Key key, float time);
+
 		template <typename T>
-		void movementController(T movingObject, float angle, __time32_t time);
+		void move(T& object, float dx, float dy, float time);
+
+		void viewController(sf::RenderWindow& win, sf::Mouse& mouse, float time);
+
+		template <typename T>
+		void rotate(T& object, short width, short delta, float time);
 
 		Player player;
 		State state;
 		std::string levels[COUNT_OF_LEVELS];
 		Level level = loadLevel(START_LEVEL);
 
-		float deltaAngle;
 		float renderingRadius = 10;
+		float deltaAngle;
+
+		float mouseSpeedCoef = 0.75;
+		Vector2i centralMousePos = Vector2i(MAX_WIDTH / 2, MAX_HEIGHT / 2);
 	};
 }
