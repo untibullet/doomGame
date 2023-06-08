@@ -28,7 +28,7 @@ int main()
     Mouse mouse = Mouse();
     window.setMouseCursorVisible(false);
 
-    Game game = Game();
+    Game game = Game(window);
 
     sf::Clock clock;
 

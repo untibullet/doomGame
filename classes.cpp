@@ -25,10 +25,17 @@ Vector2f(9.f, -5.f),
 Vector2f(9.f, 8.f), Vector2f(9.f, -5.f), Vector2f(-4.f, -5.f) };
 
 
-Game::Game() {
+Game::Game(RenderWindow& win) {
+	Game::winSize = win.getSize();
+
+	Game::stepInPixels = Game::winSize.x / COUNT_OF_RAYS;
+	Game::wallSize = Game::winSize.y * NORMAL_WALL_SIZE;
+
 	Game::player.set_default(defaultPlayerPos, defaultPlayerFAngle, FOV);
 	Game::state.set_type("InGameplay");
 	Game::deltaAngle = Game::player.rfov / COUNT_OF_RAYS;
+
+	Game::wallsTextures.loadFromFile("walls.png");
 }
 
 Level Game::loadLevel(std::string levelName) {
@@ -121,7 +128,7 @@ void Game::render(RenderWindow& win) {
 
 	drawWalls(win);
 
-	// drawSprites(win);
+	// drawObjects(win);
 
 	// drawInterface(win);
 }
@@ -159,34 +166,44 @@ void Game::drawWalls(RenderWindow& win) {
 		}
 
 		Wall wall = Game::level.walls[0];
-		float distance = Game::renderingRadius;
-		float tmp;
 		Vector2f crossingPoint;
+		float distance = Game::renderingRadius;
 		bool haveWall = false;
-		bool isCrossing = false;
-		for (int nwall = 0; nwall < player.countOfWallsAround; nwall++) {
-			wall = Game::level.walls[nwall]; // Game::player.wallsAround
 
-			crossingPoint = checkCrossing(player.position, angle, wall.leftPos, wall.rightPos, isCrossing);
-
-			if (!haveWall && isCrossing) haveWall = true;
-
-			if (!isCrossing) continue;
-
-			tmp = getDistance(player.position, crossingPoint);
-			if (tmp < distance) distance = tmp;
-		}
+		wall = findVisibleWall(haveWall, crossingPoint, distance, angle);
 
 		if (!haveWall || distance >= Game::renderingRadius) continue;
 
-		short stepInPixels = winSize.x / COUNT_OF_RAYS;
-		short rectHeight = (((float)NORMAL_DISTANCE / distance) * (winSize.y * NORMAL_WALL_SIZE));
-		short rectY = winSize.y / 2 - rectHeight / 2;
-		sf::RectangleShape rectShape = sf::RectangleShape(Vector2f(stepInPixels, rectHeight));
-		rectShape.setFillColor(sf::Color::Blue);
-		rectShape.setPosition(ray * stepInPixels, rectY);
-		win.draw(rectShape);
+		drawSprite(win, wall, distance, crossingPoint, angle, ray);
 	}
+}
+
+Wall Game::findVisibleWall(bool& haveWall, Vector2f& crossingPoint, float& distance, float angle) {
+	Wall wall = Game::level.walls[0];
+	Wall currentWall = Game::level.walls[0];
+
+	bool isCrossing = false;
+	float tmp;
+	Vector2f point;
+	for (int nwall = 0; nwall < Game::player.countOfWallsAround; nwall++) {
+		currentWall = Game::level.walls[nwall]; // Game::player.wallsAround
+
+		point = checkCrossing(Game::player.position, angle, currentWall.leftPos, currentWall.rightPos, isCrossing);
+
+		if (!isCrossing) continue;
+
+		if (!haveWall && isCrossing) haveWall = true;
+
+		tmp = getDistance(Game::player.position, point);
+
+		if (tmp < distance) {
+			wall = currentWall;
+			crossingPoint = point;
+			distance = tmp;
+		}
+	}
+
+	return wall;
 }
 
 Vector2f Game::checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector2f p2, bool& isCrossing) {
@@ -222,6 +239,35 @@ Vector2f Game::checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector
 	}
 
 	return crossingPoint;
+}
+
+template <typename T>
+void Game::drawSprite(RenderWindow& win, T& object, float distance, Vector2f point, float angle, short ray) {
+	Vector2f partOfWall;
+	if (sin(angle) > 0) partOfWall = point - object.leftPos;
+	else partOfWall = point - object.rightPos;
+
+	float tmp = getModuleOfVector(partOfWall);
+	tmp /= 1; // size of texture of wall in meters
+	tmp = tmp - (int)tmp;
+
+	Vector2f fromBegin = Game::player.position - object.leftPos,
+		fromEnd = Game::player.position - object.rightPos;
+	float countOfEnteringRays = (COUNT_OF_RAYS * getAngleBetweenVectors(fromBegin, fromEnd))
+		/ (Game::player.rfov);
+
+	sf::Sprite sprite;
+	sf::IntRect rect(96 * tmp, 288, 96 / countOfEnteringRays, 96);
+	sprite.setTexture(Game::wallsTextures);
+	sprite.setTextureRect(rect);
+
+	float rectHeight = (((float) NORMAL_DISTANCE / distance) * (Game::wallSize));
+	short rectY = Game::winSize.y / 2 - rectHeight / 2;
+
+	sprite.setScale((float) Game::stepInPixels / rect.width, (float) rectHeight / rect.height);
+	sprite.setPosition(ray * Game::stepInPixels, rectY);
+
+	win.draw(sprite);
 }
 
 void Game::update() {

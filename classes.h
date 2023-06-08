@@ -72,7 +72,7 @@ namespace objects {
 
 	class Game {
 	public:
-		Game();
+		Game(sf::RenderWindow& win);
 
 		Level loadLevel(std::string levelName);
 
@@ -82,11 +82,16 @@ namespace objects {
 
 		void drawWalls(sf::RenderWindow& win);
 
+		Wall findVisibleWall(bool& haveWall, Vector2f& crossingPoint, float& distance, float angle);
+
 		Vector2f checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector2f p2, bool& isCrossing);
 
-		void drawSprites(sf::RenderWindow& win);
+		void drawObjects(sf::RenderWindow& win);
 
 		void drawInterface(sf::RenderWindow& win);
+
+		template <typename T>
+		void drawSprite(sf::RenderWindow& win, T& object, float distance, Vector2f point, float angle, short ray);
 
 		void update();
 
@@ -100,6 +105,11 @@ namespace objects {
 		template <typename T>
 		void rotate(T& object, short width, short delta, float time);
 
+		Vector2u winSize;
+
+		float stepInPixels;
+		float wallSize;
+
 		Player player;
 		State state;
 		std::string levels[COUNT_OF_LEVELS];
@@ -110,5 +120,7 @@ namespace objects {
 
 		float mouseSpeedCoef = 0.75;
 		Vector2i centralMousePos = Vector2i(MAX_WIDTH / 2, MAX_HEIGHT / 2);
+
+		sf::Texture wallsTextures;
 	};
 }
