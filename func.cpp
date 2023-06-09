@@ -20,5 +20,5 @@ float getModuleOfVector(Vector2f v) {
 float getAngleBetweenVectors(Vector2f v1, Vector2f v2) {
 	float cos_ = (v1.x * v2.x + v1.y * v2.y) / 
 		(getModuleOfVector(v1) * getModuleOfVector(v2));
-	return acos(fabs(cos_));
+	return acos(cos_);
 }

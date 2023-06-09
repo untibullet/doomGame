@@ -22,7 +22,8 @@ float defaultPlayerFAngle = 3 * M_PI / 2;
 const Vector2f WALLS[14] = {Vector2f(0.f, 3.f), Vector2f(4.f, 2.f), 
 Vector2f(4.f, 2.f), Vector2f(4.f, 6.f), Vector2f(0.f, 3.f), Vector2f(4.f, 6.f), 
 Vector2f(9.f, -5.f),
-Vector2f(9.f, 8.f), Vector2f(9.f, -5.f), Vector2f(-4.f, -5.f) };
+Vector2f(9.f, 8.f), Vector2f(9.f, -5.f), Vector2f(-4.f, -5.f),
+Vector2f(9, 8), Vector2f(-4, 8), Vector2f(-4, 8),Vector2f(-4, -5)};
 
 
 Game::Game(RenderWindow& win) {
@@ -40,7 +41,7 @@ Game::Game(RenderWindow& win) {
 
 Level Game::loadLevel(std::string levelName) {
 	Level level;
-	level.countOfWalls = 5;
+	level.countOfWalls = 7;
 	for (int i = 0; i < level.countOfWalls; i++) {
 		level.walls[i].set_parameters(WALLS[i * 2], WALLS[i * 2 + 1]);
 	}
@@ -174,7 +175,7 @@ void Game::drawWalls(RenderWindow& win) {
 
 		if (!haveWall || distance >= Game::renderingRadius) continue;
 
-		drawSprite(win, wall, distance, crossingPoint, angle, ray);
+		drawSprite(win, wall, distance, crossingPoint, maxAngle, angle, ray);
 	}
 }
 
@@ -242,36 +243,61 @@ Vector2f Game::checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector
 }
 
 template <typename T>
-void Game::drawSprite(RenderWindow& win, T& object, float distance, Vector2f point, float angle, short ray) {
-	Vector2f partOfWall;
-	if (sin(angle) > 0) partOfWall = point - object.leftPos;
-	else partOfWall = point - object.rightPos;
+void Game::drawSprite(RenderWindow& win, T& object, float distance, Vector2f point,
+	float maxAngle, float angle, short ray) {
+	
+	sf::Sprite polygon;
+	createPolygon(object, polygon, point, angle);
 
-	float tmp = getModuleOfVector(partOfWall);
-	tmp /= 1; // size of texture of wall in meters
-	tmp = tmp - (int)tmp;
-
-	Vector2f fromBegin = Game::player.position - object.leftPos,
-		fromEnd = Game::player.position - object.rightPos;
-	float countOfEnteringRays = (COUNT_OF_RAYS * getAngleBetweenVectors(fromBegin, fromEnd))
-		/ (Game::player.rfov);
-
-	sf::Sprite sprite;
-	sf::IntRect rect(96 * tmp, 288, 96 / countOfEnteringRays, 96);
-	sprite.setTexture(Game::wallsTextures);
-	sprite.setTextureRect(rect);
+	sf::IntRect rect = polygon.getTextureRect();
 
 	float rectHeight = (((float) NORMAL_DISTANCE / distance) * (Game::wallSize));
 	short rectY = Game::winSize.y / 2 - rectHeight / 2;
 
-	sprite.setScale((float) Game::stepInPixels / rect.width, (float) rectHeight / rect.height);
-	sprite.setPosition(ray * Game::stepInPixels, rectY);
+	polygon.setScale(Game::stepInPixels / rect.width, (float) rectHeight / rect.height);
+	polygon.setPosition(ray * Game::stepInPixels, rectY);
 
-	win.draw(sprite);
+	// std::cout << ray * stepInPixels << " " << width << std::endl;
+
+	win.draw(polygon);
+}
+
+template <typename T>
+void Game::createPolygon(T object, sf::Sprite& polygon, Vector2f point, float angle) {
+	Vector2f partOfWall = point - object.leftPos;;
+
+	Vector2f fromBegin = Game::player.position - object.leftPos,
+		fromEnd = Game::player.position - object.rightPos;
+
+	float alpha = getAngleBetweenVectors(fromBegin, fromEnd);
+
+	float width;
+	float countOfEnteringRays;
+	if (alpha > Game::player.rfov) {
+		countOfEnteringRays = COUNT_OF_RAYS;
+		bool flag = false;
+		float dis = getDistance(Game::player.position, checkCrossing(Game::player.position,
+			angle, object.leftPos, object.rightPos, flag));
+		width = 96 * (2 * dis * Game::tanOfHalfFov);
+	}
+	else {
+		countOfEnteringRays = (COUNT_OF_RAYS * std::min(alpha, Game::player.rfov))
+			/ (Game::player.rfov);
+		width = 96 * object.length; // size of wall texture
+	}
+	width /= countOfEnteringRays * 1;
+
+	float tmp = getModuleOfVector(partOfWall);
+	tmp /= 1; // size of wall texture in meters
+	tmp = tmp - (int)tmp;
+
+	sf::IntRect rect(96 * tmp, 288, width, 96);
+	polygon.setTexture(Game::wallsTextures);
+	polygon.setTextureRect(rect);
 }
 
 void Game::update() {
-
+	// create array: player.wallsAround
 }
 
 void Player::set_default(Vector2f position, float angle, short fov) {
@@ -280,7 +306,7 @@ void Player::set_default(Vector2f position, float angle, short fov) {
 	Player::direction = Vector2f(cos(angle), sin(angle));
 	Player::fov = fov;
 	Player::rfov = (fov * M_PI) / 180;
-	Player::countOfWallsAround = 5;
+	Player::countOfWallsAround = 7;
 }
 
 void State::set_type(string name) {
