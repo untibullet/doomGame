@@ -275,17 +275,12 @@ void Game::createPolygon(T object, sf::Sprite& polygon, Vector2f point, float an
 	float countOfEnteringRays;
 	if (alpha > Game::player.rfov) {
 		countOfEnteringRays = COUNT_OF_RAYS;
-		bool flag = false;
-		float dis = getDistance(Game::player.position, checkCrossing(Game::player.position,
-			angle, object.leftPos, object.rightPos, flag));
-		width = 96 * (2 * dis * Game::tanOfHalfFov);
 	}
 	else {
 		countOfEnteringRays = (COUNT_OF_RAYS * std::min(alpha, Game::player.rfov))
 			/ (Game::player.rfov);
-		width = 96 * object.length; // size of wall texture
 	}
-	width /= countOfEnteringRays * 1;
+	width = std::max(96 / (countOfEnteringRays * 1), 1.f);
 
 	float tmp = getModuleOfVector(partOfWall);
 	tmp /= 1; // size of wall texture in meters
