@@ -14,7 +14,7 @@ namespace objects {
 	const short MAX_WIDTH = 1280, MAX_HEIGHT = 720;
 
 	const short FOV = 90;
-	const short COUNT_OF_RAYS = 180;
+	const short COUNT_OF_RAYS = 360;
 
 	const float MIN_DEVIATION = 0.000001;
 	const short NORMAL_DISTANCE = 4;
@@ -91,7 +91,8 @@ namespace objects {
 		void drawInterface(sf::RenderWindow& win);
 
 		template <typename T>
-		void drawSprite(sf::RenderWindow& win, T& object, float distance, Vector2f point, float maxAngle, float angle, short ray);
+		void drawSprite(sf::RenderWindow& win, T& object, float distance, Vector2f point,
+			float maxAngle, float angle, short ray);
 
 		template <typename T>
 		void createPolygon(T object, sf::Sprite& polygon, Vector2f point, float angle);
@@ -112,6 +113,8 @@ namespace objects {
 
 		float stepInPixels;
 		float wallSize;
+
+		float tanOfHalfFov = tan((FOV * M_PI) / (180 * 2));
 
 		Player player;
 		State state;

@@ -19,10 +19,11 @@ const sf::Color WALL_COLOR = sf::Color::Blue;
 Vector2f defaultPlayerPos = Vector2f(5.f, 0.f);
 float defaultPlayerFAngle = 3 * M_PI / 2;
 
-const Vector2f WALLS[14] = {Vector2f(0.f, 3.f), Vector2f(4.f, 2.f), 
-Vector2f(4.f, 2.f), Vector2f(4.f, 6.f), Vector2f(0.f, 3.f), Vector2f(4.f, 6.f), 
+const Vector2f WALLS[14] = { Vector2f(0.f, 3.f), Vector2f(4.f, 2.f),
+Vector2f(4.f, 2.f), Vector2f(4.f, 6.f), Vector2f(0.f, 3.f), Vector2f(4.f, 6.f),
 Vector2f(9.f, -5.f),
-Vector2f(9.f, 8.f), Vector2f(9.f, -5.f), Vector2f(-4.f, -5.f) };
+Vector2f(9.f, 8.f), Vector2f(9.f, -5.f), Vector2f(-4.f, -5.f),
+Vector2f(9, 8), Vector2f(-4, 8), Vector2f(-4, 8),Vector2f(-4, -5) };
 
 
 Game::Game(RenderWindow& win) {
@@ -40,7 +41,7 @@ Game::Game(RenderWindow& win) {
 
 Level Game::loadLevel(std::string levelName) {
 	Level level;
-	level.countOfWalls = 5;
+	level.countOfWalls = 7;
 	for (int i = 0; i < level.countOfWalls; i++) {
 		level.walls[i].set_parameters(WALLS[i * 2], WALLS[i * 2 + 1]);
 	}
@@ -60,7 +61,7 @@ void Game::viewController(RenderWindow& win, Mouse& mouse, float time) {
 
 template <typename T>
 void Game::rotate(T& object, short width, short delta, float time) {
-	float tmp = (float) delta / width;
+	float tmp = (float)delta / width;
 	float k = Game::mouseSpeedCoef;
 
 	object.centralAngle += k * tmp * (object.rfov);
@@ -154,7 +155,7 @@ void Game::drawWalls(RenderWindow& win) {
 	Vector2u winSize = win.getSize();
 
 	// int countOfWallsAround = Game::player.countOfWallsAround;
-	
+
 	for (short ray = 0; ray < COUNT_OF_RAYS; ray++) {
 		float angle = maxAngle - Game::deltaAngle * ray;
 
@@ -220,7 +221,7 @@ Vector2f Game::checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector
 	float x;
 	if (x1 == x2) x = x1;
 	else x = (k1 * xs - k2 * x1 + y1 - ys) / (k1 - k2);
-	
+
 	float y;
 	if (y1 == y2) y = y1;
 	else y = k1 * (x - xs) + ys;
@@ -231,7 +232,7 @@ Vector2f Game::checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector
 	else if (tmp % 2 != 0 && y <= ys) conditionAngle = true;
 
 	bool conditionX = std::min(x1, x2) <= x && std::max(x1, x2) >= x;
-	bool conditionY = std::min(y1, y2) <=y && std::max(y1, y2) >= y;
+	bool conditionY = std::min(y1, y2) <= y && std::max(y1, y2) >= y;
 
 	if (conditionX && conditionY && conditionAngle) {
 		isCrossing = true;
@@ -244,16 +245,16 @@ Vector2f Game::checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector
 template <typename T>
 void Game::drawSprite(RenderWindow& win, T& object, float distance, Vector2f point,
 	float maxAngle, float angle, short ray) {
-	
+
 	sf::Sprite polygon;
 	createPolygon(object, polygon, point, angle);
 
 	sf::IntRect rect = polygon.getTextureRect();
 
-	float rectHeight = (((float) NORMAL_DISTANCE / distance) * (Game::wallSize));
+	float rectHeight = (((float)NORMAL_DISTANCE / distance) * (Game::wallSize));
 	short rectY = Game::winSize.y / 2 - rectHeight / 2;
 
-	polygon.setScale(Game::stepInPixels / rect.width, (float) rectHeight / rect.height);
+	polygon.setScale(Game::stepInPixels / rect.width, (float)rectHeight / rect.height);
 	polygon.setPosition(ray * Game::stepInPixels, rectY);
 
 	// std::cout << ray * stepInPixels << " " << width << std::endl;
