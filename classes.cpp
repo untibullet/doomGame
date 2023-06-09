@@ -174,7 +174,7 @@ void Game::drawWalls(RenderWindow& win) {
 
 		if (!haveWall || distance >= Game::renderingRadius) continue;
 
-		drawSprite(win, wall, distance, crossingPoint, angle, ray);
+		drawSprite(win, wall, distance, crossingPoint, maxAngle, angle, ray);
 	}
 }
 
@@ -280,11 +280,6 @@ void Game::createPolygon(T object, sf::Sprite& polygon, Vector2f point, float an
 			/ (Game::player.rfov);
 	}
 	width = std::max(96 / (countOfEnteringRays * 1), 1.f);
-		countOfEnteringRays = (COUNT_OF_RAYS * std::min(alpha, Game::player.rfov))
-			/ (Game::player.rfov);
-		width = 96 * object.length; // size of wall texture
-	}
-	width /= countOfEnteringRays * 1;
 
 	float tmp = getModuleOfVector(partOfWall);
 	tmp /= 1; // size of wall texture in meters

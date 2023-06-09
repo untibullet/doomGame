@@ -91,7 +91,10 @@ namespace objects {
 		void drawInterface(sf::RenderWindow& win);
 
 		template <typename T>
-		void drawSprite(sf::RenderWindow& win, T& object, float distance, Vector2f point, float angle, short ray);
+		void drawSprite(sf::RenderWindow& win, T& object, float distance, Vector2f point, float maxAngle, float angle, short ray);
+
+		template <typename T>
+		void createPolygon(T object, sf::Sprite& polygon, Vector2f point, float angle);
 
 		void update();
 
