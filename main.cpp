@@ -61,7 +61,7 @@ int main()
 
         mouse.setPosition(game.centralMousePos);
 
-        // game.update();
+        game.update();
 
         window.clear();
 

@@ -23,9 +23,12 @@ namespace objects {
 	const int MAX_COUNT_OF_WALLS = 100;
 	const short MAX_WALLS_AROUND = MAX_COUNT_OF_WALLS / 4;
 
+	const short MAX_COUNT_OF_SPRITES = 50;
+	const short MAX_SPRITES_AROUND = 30;
+
 	const short COUNT_OF_LEVELS = 10;
 
-	const std::string START_LEVEL = "level1.txt";
+	const std::string START_LEVEL = "levels/level1.txt";
 
 	const float PLAYER_SPEED = 2;
 	const float PLAYER_ROTATIONAL_SPEED = 0.1;
@@ -34,17 +37,46 @@ namespace objects {
 	public:
 		void set_parameters(Vector2f leftPos, Vector2f rightPos);
 
+		short heigthShift = 0;
+
 		Vector2f leftPos;
 		Vector2f rightPos;
+		Vector2f middlePos;
 		float length;
+	};
+
+	class SpriteObject {
+	public:
+		void setParameters(float x1, float y1, short xpick, short ypick, short wdth,
+			short hght, float relSize, std::string name);
+
+		std::string type;
+
+		std::string texturePath = "assets/things.png";
+		Vector2i positionInTexture;
+		Vector2i sizeInTexture;
+
+		short heigthShift = 400;
+		float relativeSize = 0.2;
+
+		float length;
+
+		Vector2f middlePos;
+		Vector2f leftPos;
+		Vector2f rightPos;
 	};
 
 	class Level {
 	public:
-		std::string levelAddres;
-		std::string levelName;
+		std::string levelPath;
+
+		Vector2f defaultPlayerPos;
+
 		int countOfWalls;
 		Wall walls[MAX_COUNT_OF_WALLS];
+
+		int countOfSpriteObjects;
+		SpriteObject spriteObjects[MAX_COUNT_OF_SPRITES];
 	};
 
 	class State {
@@ -56,18 +88,23 @@ namespace objects {
 
 	class Player {
 	public:
-		void set_default(Vector2f position, float angle, short fov);
+		void set_default(float angle, short fov);
 
 		short fov;
 		float rfov;
-		Vector2f position;
 		float centralAngle;
 		Vector2f direction;
-		int countOfWallsAround = 0;
-		Wall wallsAround[MAX_WALLS_AROUND];
+
 		float speed = PLAYER_SPEED;
 		float rotationalSpeed = PLAYER_ROTATIONAL_SPEED;
 
+		Vector2f position;
+		
+		int countOfWallsAround = 0;
+		Wall wallsAround[MAX_WALLS_AROUND];
+
+		int countOfSpriteObjectsAround;
+		SpriteObject spriteObjectsAround[MAX_COUNT_OF_SPRITES];
 	};
 
 	class Game {
@@ -99,6 +136,10 @@ namespace objects {
 
 		void update();
 
+		void updateRenderingArrays();
+
+		void updateSpriteObjectsAround();
+
 		void movementController(sf::Keyboard::Key key, float time);
 
 		template <typename T>
@@ -119,7 +160,8 @@ namespace objects {
 		Player player;
 		State state;
 		std::string levels[COUNT_OF_LEVELS];
-		Level level = loadLevel(START_LEVEL);
+		std::string levelPath = START_LEVEL;
+		Level level;
 
 		float renderingRadius = 20;
 		float deltaAngle;

@@ -17,7 +17,7 @@ const sf::Color SKYBOX_COLOR = sf::Color(35, 87, 97);
 const sf::Color WALL_COLOR = sf::Color::Blue;
 
 Vector2f defaultPlayerPos = Vector2f(5.f, 0.f);
-float defaultPlayerFAngle = 3 * M_PI / 2;
+float defaultPlayerFAngle = 0.001;
 
 const Vector2f WALLS[14] = { Vector2f(0.f, 3.f), Vector2f(4.f, 2.f),
 Vector2f(4.f, 2.f), Vector2f(4.f, 6.f), Vector2f(0.f, 3.f), Vector2f(4.f, 6.f),
@@ -29,23 +29,70 @@ Vector2f(9, 8), Vector2f(-4, 8), Vector2f(-4, 8),Vector2f(-4, -5) };
 Game::Game(RenderWindow& win) {
 	Game::winSize = win.getSize();
 
-	Game::stepInPixels = Game::winSize.x / COUNT_OF_RAYS;
+	Game::stepInPixels = (float) Game::winSize.x / COUNT_OF_RAYS;
 	Game::wallSize = Game::winSize.y * NORMAL_WALL_SIZE;
 
-	Game::player.set_default(defaultPlayerPos, defaultPlayerFAngle, FOV);
+	Game::level = loadLevel(Game::levelPath);
+
+	Game::player.set_default(defaultPlayerFAngle, FOV);
 	Game::state.set_type("InGameplay");
 	Game::deltaAngle = Game::player.rfov / COUNT_OF_RAYS;
 
-	Game::wallsTextures.loadFromFile("walls.png");
+	Game::wallsTextures.loadFromFile("assets/walls.png");
 }
 
-Level Game::loadLevel(std::string levelName) {
+Level Game::loadLevel(std::string levelPath) {
 	Level level;
-	level.countOfWalls = 7;
-	for (int i = 0; i < level.countOfWalls; i++) {
-		level.walls[i].set_parameters(WALLS[i * 2], WALLS[i * 2 + 1]);
+
+	std::ifstream map(levelPath);
+	if (!map.is_open()) {
+		std::cout << "<Not found a level>" << std::endl;
+		return level;
 	}
 
+	Vector2f plPos;
+	map >> plPos.x >> plPos.y;
+	Game::player.position = plPos;
+
+	int count;
+	map >> count; // walls
+	for (int i = 0; i < count; i++) {
+		float x1, y1, x2, y2;
+		int mod;
+
+		map >> x1;
+
+		if (x1 == -9999) {
+			count = i;
+			break;
+		}
+
+		map >> y1 >> x2 >> y2 >> mod;
+		level.walls[i].set_parameters(Vector2f(x1, y1), Vector2f(x2, y2));
+	}
+	level.countOfWalls = count;
+
+	map >> count; // things
+	for (int i = 0; i < count; i++) {
+		float x1, y1, xpick, ypick, wdth, hght, relSize;
+		std::string name;
+
+		map >> x1;
+
+		if (x1 == -9999) {
+			count = i + 1;
+			break;
+		}
+
+		map >> y1 >> xpick >> ypick >> wdth >> hght >> relSize;
+		level.spriteObjects[i].setParameters(x1, y1, xpick, ypick, wdth, hght, relSize, name);
+	}
+	level.countOfSpriteObjects = count;
+
+	// map >> count; // enemeis
+
+	map.close();
+	
 	return level;
 }
 
@@ -81,14 +128,8 @@ void Game::movementController(sf::Keyboard::Key key, float time) {
 	float dx, dy;
 
 	float ax = playerDir.x, ay = playerDir.y, bx, by;
-	if (ax == 0) {
-		bx = ay;
-		by = 0;
-	}
-	else {
-		bx = -1 * ay;
-		by = ax;
-	}
+	Vector2f normVec = getNormalVector(playerDir);
+	bx = normVec.x, by = normVec.y;
 
 	if (key == Keyboard::W) {
 		dx = playerDir.x;
@@ -175,6 +216,8 @@ void Game::drawWalls(RenderWindow& win) {
 
 		if (!haveWall || distance >= Game::renderingRadius) continue;
 
+		// distance *= cos(-1 * Game::player.rfov / 2 + deltaAngle * ray);
+
 		drawSprite(win, wall, distance, crossingPoint, maxAngle, angle, ray);
 	}
 }
@@ -187,7 +230,7 @@ Wall Game::findVisibleWall(bool& haveWall, Vector2f& crossingPoint, float& dista
 	float tmp;
 	Vector2f point;
 	for (int nwall = 0; nwall < Game::player.countOfWallsAround; nwall++) {
-		currentWall = Game::level.walls[nwall]; // Game::player.wallsAround
+		currentWall = Game::player.wallsAround[nwall]; // Game::player.wallsAround
 
 		point = checkCrossing(Game::player.position, angle, currentWall.leftPos, currentWall.rightPos, isCrossing);
 
@@ -255,7 +298,8 @@ void Game::drawSprite(RenderWindow& win, T& object, float distance, Vector2f poi
 	short rectY = Game::winSize.y / 2 - rectHeight / 2;
 
 	polygon.setScale(Game::stepInPixels / rect.width, (float)rectHeight / rect.height);
-	polygon.setPosition(ray * Game::stepInPixels, rectY);
+	polygon.setPosition(ray * Game::stepInPixels, rectY - 
+		((float)NORMAL_DISTANCE / distance) * object.heigthShift);
 
 	// std::cout << ray * stepInPixels << " " << width << std::endl;
 
@@ -292,24 +336,82 @@ void Game::createPolygon(T object, sf::Sprite& polygon, Vector2f point, float an
 }
 
 void Game::update() {
-	// create array: player.wallsAround
+	updateRenderingArrays();
+
+	updateSpriteObjectsAround();
 }
 
-void Player::set_default(Vector2f position, float angle, short fov) {
+void Game::updateRenderingArrays() {
+	int n = 0;
+	for (int i = 0; i < level.countOfWalls; i++) {
+		Wall& wall = level.walls[i];
+		float dis[3];
+		dis[0] = getDistance(wall.leftPos, player.position);
+		dis[1] = getDistance(wall.middlePos, player.position);
+		dis[2] = getDistance(wall.rightPos, player.position);
+
+		if (std::min(std::min(dis[0], dis[1]), dis[2]) > renderingRadius)
+			continue;
+
+		player.wallsAround[n] = wall;
+		n++;
+	}
+	player.countOfWallsAround = n;
+
+	n = 0;
+	for (int i = 0; i < level.countOfSpriteObjects; i++) {
+		SpriteObject& obj = level.spriteObjects[i];
+		float dis = getDistance(obj.middlePos, player.position);
+
+		if (dis > renderingRadius)
+			continue;
+
+		player.spriteObjectsAround[n] = obj;
+		n++;
+	}
+	player.countOfSpriteObjectsAround = n;
+}
+
+void Game::updateSpriteObjectsAround() {
+	for (int i = 0; i < player.countOfSpriteObjectsAround; i++) {
+		SpriteObject& obj = player.spriteObjectsAround[i];
+
+		Vector2f normalVector = getNormalVector(player.position - obj.middlePos);
+		obj.rightPos = multiplyVectorNumber(normalVector, obj.length / 2) + obj.middlePos;
+		obj.leftPos = multiplyVectorNumber(normalVector, obj.length / 2 * -1) + obj.middlePos;
+	}
+}
+
+void Player::set_default(float angle, short fov) {
 	Player::position = position;
 	Player::centralAngle = angle;
 	Player::direction = Vector2f(cos(angle), sin(angle));
 	Player::fov = fov;
 	Player::rfov = (fov * M_PI) / 180;
-	Player::countOfWallsAround = 7;
+	Player::countOfWallsAround = 4;
 }
 
 void State::set_type(string name) {
 	State::name = name;
 }
 
+void SpriteObject::setParameters(float x1, float y1, short xpick, short ypick, short wdth, 
+	short hght, float length, std::string name) {
+	SpriteObject::type = name;
+	SpriteObject::middlePos = Vector2f(x1, y1);
+
+	SpriteObject::positionInTexture = Vector2i(xpick, ypick);
+	SpriteObject::sizeInTexture = Vector2i(wdth, hght);
+
+	SpriteObject::length = length;
+}
+
 void Wall::set_parameters(Vector2f leftPos, Vector2f rightPos) {
 	Wall::leftPos = leftPos;
 	Wall::rightPos = rightPos;
+
+	Vector2f tmp = rightPos - leftPos;
+	Wall::middlePos = Vector2f(tmp.x / 2, tmp.y / 2) + leftPos;
+
 	Wall::length = getDistance(leftPos, rightPos);
 }

@@ -5,6 +5,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <time.h>
+#include <fstream>
 
 #include <SFML/Graphics.hpp>
 #include <SFML/System/Vector2.hpp>

@@ -36,4 +36,18 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="levels\level1.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\walls.png">
+      <Filter>Файлы ресурсов</Filter>
+    </Image>
+    <Image Include="assets\enemy.png">
+      <Filter>Файлы ресурсов</Filter>
+    </Image>
+    <Image Include="assets\things.png">
+      <Filter>Файлы ресурсов</Filter>
+    </Image>
+  </ItemGroup>
 </Project>
