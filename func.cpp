@@ -8,6 +8,24 @@ using sf::Keyboard;
 
 using std::string;
 
+template <typename T>
+bool comp(T s1, T s2) {
+	return s1.lastDistanceToPlayer < s2.lastDistanceToPlayer;
+}
+
+template <typename T>
+void sorting(T* arr, short count) {
+	for (int i = 0; i < count; i++) {
+		for (int j = 0; j < count - (i + 1); j++) {
+			if (arr[j].lastDistanceToPlayer < arr[j + 1].lastDistanceToPlayer) {
+				int b = arr[j]; // создали дополнительную переменную
+				arr[j] = arr[j + 1]; // меняем местами
+				arr[j + 1] = b; // значения элементов
+			}
+		}
+	}
+}
+
 Vector2f multiplyVectorNumber(Vector2f v, float number) {
 	return Vector2f(v.x * number, v.y * number);
 }

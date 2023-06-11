@@ -30,19 +30,50 @@ namespace objects {
 
 	const std::string START_LEVEL = "levels/level1.txt";
 
-	const float PLAYER_SPEED = 2;
+	const float PLAYER_SPEED = 2.5;
 	const float PLAYER_ROTATIONAL_SPEED = 0.1;
 
-	class Wall {
+	class SpritesPreset {
 	public:
-		void set_parameters(Vector2f leftPos, Vector2f rightPos);
+		void setParameters(short type, std::string name,
+			Vector2i pos, Vector2i size);
 
-		short heigthShift = 0;
+		short type;
+		std::string name;
+
+		Vector2i positionInTileMap;
+		Vector2i sizeInTileMap;
+
+		float defaultHeight;
+		short heightShift;
+	};
+
+	class Polygon {
+		std::string type = "wall";
 
 		Vector2f leftPos;
 		Vector2f rightPos;
 		Vector2f middlePos;
 		float length;
+	};
+
+	class Wall {
+	public:
+		void set_parameters(Vector2f leftPos, Vector2f rightPos, float sizeInPixels);
+
+		std::string type = "wall";
+
+		std::string texturePath = "assets/things.png";
+		Vector2i positionInTexture = Vector2i(0, 288);
+		Vector2i sizeInTexture = Vector2i(96, 96);
+
+		Vector2f leftPos;
+		Vector2f rightPos;
+		Vector2f middlePos;
+		float length;
+
+		float sizeInPixels;
+		short heigthShift = 0;
 	};
 
 	class SpriteObject {
@@ -56,14 +87,17 @@ namespace objects {
 		Vector2i positionInTexture;
 		Vector2i sizeInTexture;
 
-		short heigthShift = 400;
-		float relativeSize = 0.2;
+		float sizeInPixels = 100;
+		short heigthShift = 100;
 
 		float length;
 
 		Vector2f middlePos;
 		Vector2f leftPos;
 		Vector2f rightPos;
+
+		float lastDistanceToPlayer;
+		Vector2f pointOfCollision;
 	};
 
 	class Level {
@@ -113,6 +147,8 @@ namespace objects {
 
 		Level loadLevel(std::string levelName);
 
+		void createPresets();
+
 		void render(sf::RenderWindow& win);
 
 		void drawBackGround(sf::RenderWindow& win);
@@ -120,6 +156,8 @@ namespace objects {
 		void drawWalls(sf::RenderWindow& win);
 
 		Wall findVisibleWall(bool& haveWall, Vector2f& crossingPoint, float& distance, float angle);
+
+		SpriteObject* findVisibleSpriteObjects(int& count, float angle, float maxRenderDistance);
 
 		Vector2f checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector2f p2, bool& isCrossing);
 
@@ -159,6 +197,7 @@ namespace objects {
 
 		Player player;
 		State state;
+
 		std::string levels[COUNT_OF_LEVELS];
 		std::string levelPath = START_LEVEL;
 		Level level;
@@ -169,6 +208,10 @@ namespace objects {
 		float mouseSpeedCoef = 0.75;
 		Vector2i centralMousePos = Vector2i(MAX_WIDTH / 2, MAX_HEIGHT / 2);
 
+		sf::Texture texturePack[3];
+		SpritesPreset presets[4];
+
 		sf::Texture wallsTextures;
+		sf::Texture spritesTextures;
 	};
 }

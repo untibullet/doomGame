@@ -26,10 +26,24 @@ Vector2f(9.f, 8.f), Vector2f(9.f, -5.f), Vector2f(-4.f, -5.f),
 Vector2f(9, 8), Vector2f(-4, 8), Vector2f(-4, 8),Vector2f(-4, -5) };
 
 
+template <typename T>
+void sorting(T* arr, short count) {
+	for (int i = 0; i < count; i++) {
+		for (int j = 0; j < count - (i + 1); j++) {
+			if (arr[j].lastDistanceToPlayer < arr[j + 1].lastDistanceToPlayer) {
+				T b = arr[j]; // создали дополнительную переменную
+				arr[j] = arr[j + 1]; // меняем местами
+				arr[j + 1] = b; // значения элементов
+			}
+		}
+	}
+}
+
+
 Game::Game(RenderWindow& win) {
 	Game::winSize = win.getSize();
 
-	Game::stepInPixels = (float) Game::winSize.x / COUNT_OF_RAYS;
+	Game::stepInPixels = (float)Game::winSize.x / COUNT_OF_RAYS;
 	Game::wallSize = Game::winSize.y * NORMAL_WALL_SIZE;
 
 	Game::level = loadLevel(Game::levelPath);
@@ -39,6 +53,11 @@ Game::Game(RenderWindow& win) {
 	Game::deltaAngle = Game::player.rfov / COUNT_OF_RAYS;
 
 	Game::wallsTextures.loadFromFile("assets/walls.png");
+	Game::spritesTextures.loadFromFile("assets/things.png");
+
+	Game::texturePack[0].loadFromFile("assets/walls.png");
+	Game::texturePack[1].loadFromFile("assets/things.png");
+	Game::texturePack[2].loadFromFile("assets/enemy.png");
 }
 
 Level Game::loadLevel(std::string levelPath) {
@@ -68,7 +87,7 @@ Level Game::loadLevel(std::string levelPath) {
 		}
 
 		map >> y1 >> x2 >> y2 >> mod;
-		level.walls[i].set_parameters(Vector2f(x1, y1), Vector2f(x2, y2));
+		level.walls[i].set_parameters(Vector2f(x1, y1), Vector2f(x2, y2), wallSize);
 	}
 	level.countOfWalls = count;
 
@@ -94,6 +113,20 @@ Level Game::loadLevel(std::string levelPath) {
 	map.close();
 	
 	return level;
+}
+
+void Game::createPresets() {
+	// wall_0
+	presets[0].setParameters(0, "wall_0", Vector2i(0, 288), Vector2i(96, 96));
+
+	// wall_2
+	presets[1].setParameters(0, "wall_1", Vector2i(384, 288), Vector2i(96, 96));
+
+	// aidkit
+	presets[2].setParameters(1, "aidkit", Vector2i(17, 65), Vector2i(14, 14));
+
+	// enemy_0
+	presets[3].setParameters(2, "enemy_0", Vector2i(483, 208), Vector2i(41, 51));
 }
 
 void Game::viewController(RenderWindow& win, Mouse& mouse, float time) {
@@ -214,11 +247,23 @@ void Game::drawWalls(RenderWindow& win) {
 
 		wall = findVisibleWall(haveWall, crossingPoint, distance, angle);
 
-		if (!haveWall || distance >= Game::renderingRadius) continue;
+		if (haveWall && distance <= Game::renderingRadius)
+			drawSprite(win, wall, distance, crossingPoint, maxAngle, angle, ray);
+
+		int count = 0;
+		SpriteObject* sprites;
+		sprites = findVisibleSpriteObjects(count, angle, distance);
+
+		sorting(sprites, count);
+
+		SpriteObject sprite;
+		for (short i = 0; i < count; i++) {
+			sprite = sprites[i];
+			drawSprite(win, sprite, sprite.lastDistanceToPlayer, sprite.pointOfCollision,
+				maxAngle, angle, ray);
+		}
 
 		// distance *= cos(-1 * Game::player.rfov / 2 + deltaAngle * ray);
-
-		drawSprite(win, wall, distance, crossingPoint, maxAngle, angle, ray);
 	}
 }
 
@@ -230,7 +275,7 @@ Wall Game::findVisibleWall(bool& haveWall, Vector2f& crossingPoint, float& dista
 	float tmp;
 	Vector2f point;
 	for (int nwall = 0; nwall < Game::player.countOfWallsAround; nwall++) {
-		currentWall = Game::player.wallsAround[nwall]; // Game::player.wallsAround
+		currentWall = Game::player.wallsAround[nwall];
 
 		point = checkCrossing(Game::player.position, angle, currentWall.leftPos, currentWall.rightPos, isCrossing);
 
@@ -248,6 +293,32 @@ Wall Game::findVisibleWall(bool& haveWall, Vector2f& crossingPoint, float& dista
 	}
 
 	return wall;
+}
+
+SpriteObject* Game::findVisibleSpriteObjects(int& count, float angle, float maxRenderDistance) {
+	SpriteObject output[MAX_SPRITES_AROUND];
+
+	int n = 0;
+	bool isCrossing;
+	Vector2f point;
+	float distance;
+	for (int i = 0; i < player.countOfSpriteObjectsAround; i++) {
+		isCrossing = false;
+		SpriteObject& obj = player.spriteObjectsAround[i];
+		point = checkCrossing(player.position, angle, obj.leftPos, obj.rightPos, isCrossing);
+		if (!isCrossing) continue;
+
+		distance = getDistance(player.position, point);
+		if (distance > maxRenderDistance) continue;
+
+		obj.lastDistanceToPlayer = distance;
+		obj.pointOfCollision = point;
+		
+		output[n] = obj;
+		n++, count++;
+	}
+
+	return output;
 }
 
 Vector2f Game::checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector2f p2, bool& isCrossing) {
@@ -286,20 +357,20 @@ Vector2f Game::checkCrossing(Vector2f startPos, float angle, Vector2f p1, Vector
 }
 
 template <typename T>
-void Game::drawSprite(RenderWindow& win, T& object, float distance, Vector2f point,
+void Game::drawSprite(RenderWindow& win, T& obj, float distance, Vector2f point,
 	float maxAngle, float angle, short ray) {
 
 	sf::Sprite polygon;
-	createPolygon(object, polygon, point, angle);
+	createPolygon(obj, polygon, point, angle);
 
 	sf::IntRect rect = polygon.getTextureRect();
 
-	float rectHeight = (((float)NORMAL_DISTANCE / distance) * (Game::wallSize));
+	float kdis = (float)NORMAL_DISTANCE / distance;
+	float rectHeight = (kdis * (obj.sizeInPixels));
 	short rectY = Game::winSize.y / 2 - rectHeight / 2;
 
 	polygon.setScale(Game::stepInPixels / rect.width, (float)rectHeight / rect.height);
-	polygon.setPosition(ray * Game::stepInPixels, rectY - 
-		((float)NORMAL_DISTANCE / distance) * object.heigthShift);
+	polygon.setPosition(ray * Game::stepInPixels, rectY + kdis * obj.heigthShift);
 
 	// std::cout << ray * stepInPixels << " " << width << std::endl;
 
@@ -307,11 +378,11 @@ void Game::drawSprite(RenderWindow& win, T& object, float distance, Vector2f poi
 }
 
 template <typename T>
-void Game::createPolygon(T object, sf::Sprite& polygon, Vector2f point, float angle) {
-	Vector2f partOfWall = point - object.leftPos;;
+void Game::createPolygon(T obj, sf::Sprite& polygon, Vector2f point, float angle) {
+	Vector2f partOfWall = point - obj.leftPos;;
 
-	Vector2f fromBegin = Game::player.position - object.leftPos,
-		fromEnd = Game::player.position - object.rightPos;
+	Vector2f fromBegin = Game::player.position - obj.leftPos,
+		fromEnd = Game::player.position - obj.rightPos;
 
 	float alpha = getAngleBetweenVectors(fromBegin, fromEnd);
 
@@ -324,14 +395,17 @@ void Game::createPolygon(T object, sf::Sprite& polygon, Vector2f point, float an
 		countOfEnteringRays = (COUNT_OF_RAYS * std::min(alpha, Game::player.rfov))
 			/ (Game::player.rfov);
 	}
-	width = std::max(96 / (countOfEnteringRays * 1), 1.f);
+	width = std::max(obj.sizeInTexture.x / (countOfEnteringRays * 1), 1.f);
 
 	float tmp = getModuleOfVector(partOfWall);
 	tmp /= 1; // size of wall texture in meters
-	tmp = tmp - (int)tmp;
+	if (obj.type == "wall") tmp = tmp - (int)tmp;
+	else tmp /= obj.length;
 
-	sf::IntRect rect(96 * tmp, 288, width, 96);
-	polygon.setTexture(Game::wallsTextures);
+	sf::IntRect rect(obj.positionInTexture.x + obj.sizeInTexture.x * tmp,
+		obj.positionInTexture.y, width, obj.sizeInTexture.y);
+	if (obj.type == "wall") polygon.setTexture(Game::wallsTextures);
+	else polygon.setTexture(Game::spritesTextures);
 	polygon.setTextureRect(rect);
 }
 
@@ -377,8 +451,9 @@ void Game::updateSpriteObjectsAround() {
 		SpriteObject& obj = player.spriteObjectsAround[i];
 
 		Vector2f normalVector = getNormalVector(player.position - obj.middlePos);
-		obj.rightPos = multiplyVectorNumber(normalVector, obj.length / 2) + obj.middlePos;
-		obj.leftPos = multiplyVectorNumber(normalVector, obj.length / 2 * -1) + obj.middlePos;
+		float k = (obj.length / 2) / getModuleOfVector(normalVector);
+		obj.rightPos = multiplyVectorNumber(normalVector, k) + obj.middlePos;
+		obj.leftPos = multiplyVectorNumber(normalVector, k * -1) + obj.middlePos;
 	}
 }
 
@@ -406,7 +481,7 @@ void SpriteObject::setParameters(float x1, float y1, short xpick, short ypick, s
 	SpriteObject::length = length;
 }
 
-void Wall::set_parameters(Vector2f leftPos, Vector2f rightPos) {
+void Wall::set_parameters(Vector2f leftPos, Vector2f rightPos, float sizeInPixels) {
 	Wall::leftPos = leftPos;
 	Wall::rightPos = rightPos;
 
@@ -414,4 +489,17 @@ void Wall::set_parameters(Vector2f leftPos, Vector2f rightPos) {
 	Wall::middlePos = Vector2f(tmp.x / 2, tmp.y / 2) + leftPos;
 
 	Wall::length = getDistance(leftPos, rightPos);
+
+	Wall::sizeInPixels = sizeInPixels;
+}
+
+void SpritesPreset::setParameters(short type, std::string name,
+	Vector2i pos, Vector2i size) {
+	SpritesPreset::type = type;
+	SpritesPreset::name = name;
+
+	positionInTileMap = pos;
+	sizeInTileMap = size;
+
+
 }
