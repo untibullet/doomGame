@@ -14,7 +14,7 @@ namespace objects {
 	const short MAX_WIDTH = 1280, MAX_HEIGHT = 720;
 
 	const short FOV = 90;
-	const short COUNT_OF_RAYS = 360;
+	const short COUNT_OF_RAYS = 160;
 
 	const float MIN_DEVIATION = 0.000001;
 	const short NORMAL_DISTANCE = 4;
@@ -36,7 +36,7 @@ namespace objects {
 	class SpritesPreset {
 	public:
 		void setParameters(short type, std::string name,
-			Vector2i pos, Vector2i size);
+			Vector2i pos, Vector2i size, float height, short shift);
 
 		short type;
 		std::string name;
@@ -49,7 +49,8 @@ namespace objects {
 	};
 
 	class Polygon {
-		std::string type = "wall";
+	public:
+		SpritesPreset preset;
 
 		Vector2f leftPos;
 		Vector2f rightPos;
@@ -57,44 +58,16 @@ namespace objects {
 		float length;
 	};
 
-	class Wall {
+	class Wall : public Polygon {
 	public:
-		void set_parameters(Vector2f leftPos, Vector2f rightPos, float sizeInPixels);
-
-		std::string type = "wall";
-
-		std::string texturePath = "assets/things.png";
-		Vector2i positionInTexture = Vector2i(0, 288);
-		Vector2i sizeInTexture = Vector2i(96, 96);
-
-		Vector2f leftPos;
-		Vector2f rightPos;
-		Vector2f middlePos;
-		float length;
-
-		float sizeInPixels;
-		short heigthShift = 0;
+		void set_parameters(Vector2f leftPos, Vector2f rightPos, 
+			SpritesPreset& preset);
 	};
 
-	class SpriteObject {
+	class SpriteObject : public Polygon {
 	public:
-		void setParameters(float x1, float y1, short xpick, short ypick, short wdth,
-			short hght, float relSize, std::string name);
-
-		std::string type;
-
-		std::string texturePath = "assets/things.png";
-		Vector2i positionInTexture;
-		Vector2i sizeInTexture;
-
-		float sizeInPixels = 100;
-		short heigthShift = 100;
-
-		float length;
-
-		Vector2f middlePos;
-		Vector2f leftPos;
-		Vector2f rightPos;
+		void setParameters(float x, float y, float length,
+			SpritesPreset& preset);
 
 		float lastDistanceToPlayer;
 		Vector2f pointOfCollision;

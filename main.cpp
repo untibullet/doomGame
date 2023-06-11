@@ -37,7 +37,7 @@ int main()
         float time = clock.getElapsedTime().asSeconds();
         clock.restart();
 
-        std::cout << 1.f / time << std::endl;
+        // std::cout << 1.f / time << std::endl;
 
         sf::Event event;
         while (window.pollEvent(event))
@@ -62,6 +62,8 @@ int main()
         }
 
         mouse.setPosition(game.centralMousePos);
+
+        std::cout << game.player.position.x << " " << game.player.position.y << " " << game.player.centralAngle << std::endl;
 
         game.update();
 

@@ -16,8 +16,8 @@ const sf::Color GROUNG_COLOR = sf::Color(100, 100, 100);
 const sf::Color SKYBOX_COLOR = sf::Color(35, 87, 97);
 const sf::Color WALL_COLOR = sf::Color::Blue;
 
-Vector2f defaultPlayerPos = Vector2f(5.f, 0.f);
-float defaultPlayerFAngle = 0.001;
+Vector2f defaultPlayerPos = Vector2f(-4.56137, 0.51811);
+float defaultPlayerFAngle = 6.06974;
 
 const Vector2f WALLS[14] = { Vector2f(0.f, 3.f), Vector2f(4.f, 2.f),
 Vector2f(4.f, 2.f), Vector2f(4.f, 6.f), Vector2f(0.f, 3.f), Vector2f(4.f, 6.f),
@@ -46,14 +46,13 @@ Game::Game(RenderWindow& win) {
 	Game::stepInPixels = (float)Game::winSize.x / COUNT_OF_RAYS;
 	Game::wallSize = Game::winSize.y * NORMAL_WALL_SIZE;
 
+	createPresets();
+
 	Game::level = loadLevel(Game::levelPath);
 
 	Game::player.set_default(defaultPlayerFAngle, FOV);
 	Game::state.set_type("InGameplay");
 	Game::deltaAngle = Game::player.rfov / COUNT_OF_RAYS;
-
-	Game::wallsTextures.loadFromFile("assets/walls.png");
-	Game::spritesTextures.loadFromFile("assets/things.png");
 
 	Game::texturePack[0].loadFromFile("assets/walls.png");
 	Game::texturePack[1].loadFromFile("assets/things.png");
@@ -77,7 +76,7 @@ Level Game::loadLevel(std::string levelPath) {
 	map >> count; // walls
 	for (int i = 0; i < count; i++) {
 		float x1, y1, x2, y2;
-		int mod;
+		short _preset;
 
 		map >> x1;
 
@@ -86,15 +85,15 @@ Level Game::loadLevel(std::string levelPath) {
 			break;
 		}
 
-		map >> y1 >> x2 >> y2 >> mod;
-		level.walls[i].set_parameters(Vector2f(x1, y1), Vector2f(x2, y2), wallSize);
+		map >> y1 >> x2 >> y2 >> _preset;
+		level.walls[i].set_parameters(Vector2f(x1, y1), Vector2f(x2, y2), presets[_preset]);
 	}
 	level.countOfWalls = count;
 
 	map >> count; // things
 	for (int i = 0; i < count; i++) {
-		float x1, y1, xpick, ypick, wdth, hght, relSize;
-		std::string name;
+		float x1, y1, length;
+		short _preset;
 
 		map >> x1;
 
@@ -103,12 +102,10 @@ Level Game::loadLevel(std::string levelPath) {
 			break;
 		}
 
-		map >> y1 >> xpick >> ypick >> wdth >> hght >> relSize;
-		level.spriteObjects[i].setParameters(x1, y1, xpick, ypick, wdth, hght, relSize, name);
+		map >> y1 >> length >> _preset;
+		level.spriteObjects[i].setParameters(x1, y1, length, presets[_preset]);
 	}
 	level.countOfSpriteObjects = count;
-
-	// map >> count; // enemeis
 
 	map.close();
 	
@@ -117,16 +114,25 @@ Level Game::loadLevel(std::string levelPath) {
 
 void Game::createPresets() {
 	// wall_0
-	presets[0].setParameters(0, "wall_0", Vector2i(0, 288), Vector2i(96, 96));
+	presets[0].setParameters(0, "wall", Vector2i(0, 288), Vector2i(96, 96), 
+		wallSize, 0);
 
 	// wall_2
-	presets[1].setParameters(0, "wall_1", Vector2i(384, 288), Vector2i(96, 96));
+	presets[1].setParameters(0, "wall", Vector2i(384, 288), Vector2i(96, 96),
+		wallSize, 0);
 
+	float dh = winSize.y * 0.15;
+	short dst = winSize.y * 0.125;
 	// aidkit
-	presets[2].setParameters(1, "aidkit", Vector2i(17, 65), Vector2i(14, 14));
+	presets[2].setParameters(1, "aidkit", Vector2i(17, 65), Vector2i(14, 14),
+		dh, dst);
+	// for things: dst + (dh - h)
 
+	dh = winSize.y * 0.275;
+	dst = (wallSize - dh) / 2;
 	// enemy_0
-	presets[3].setParameters(2, "enemy_0", Vector2i(483, 208), Vector2i(41, 51));
+	presets[3].setParameters(2, "enemy_0", Vector2i(483, 208), Vector2i(41, 51),
+		dh, dst);
 }
 
 void Game::viewController(RenderWindow& win, Mouse& mouse, float time) {
@@ -364,13 +370,14 @@ void Game::drawSprite(RenderWindow& win, T& obj, float distance, Vector2f point,
 	createPolygon(obj, polygon, point, angle);
 
 	sf::IntRect rect = polygon.getTextureRect();
+	SpritesPreset preset = obj.preset;
 
 	float kdis = (float)NORMAL_DISTANCE / distance;
-	float rectHeight = (kdis * (obj.sizeInPixels));
+	float rectHeight = (kdis * (preset.defaultHeight));
 	short rectY = Game::winSize.y / 2 - rectHeight / 2;
 
 	polygon.setScale(Game::stepInPixels / rect.width, (float)rectHeight / rect.height);
-	polygon.setPosition(ray * Game::stepInPixels, rectY + kdis * obj.heigthShift);
+	polygon.setPosition(ray * Game::stepInPixels, rectY + kdis * preset.heightShift);
 
 	// std::cout << ray * stepInPixels << " " << width << std::endl;
 
@@ -384,6 +391,8 @@ void Game::createPolygon(T obj, sf::Sprite& polygon, Vector2f point, float angle
 	Vector2f fromBegin = Game::player.position - obj.leftPos,
 		fromEnd = Game::player.position - obj.rightPos;
 
+	SpritesPreset preset = obj.preset;
+
 	float alpha = getAngleBetweenVectors(fromBegin, fromEnd);
 
 	float width;
@@ -395,17 +404,17 @@ void Game::createPolygon(T obj, sf::Sprite& polygon, Vector2f point, float angle
 		countOfEnteringRays = (COUNT_OF_RAYS * std::min(alpha, Game::player.rfov))
 			/ (Game::player.rfov);
 	}
-	width = std::max(obj.sizeInTexture.x / (countOfEnteringRays * 1), 1.f);
+	width = std::max(preset.sizeInTileMap.x / (countOfEnteringRays * 1), 1.f);
 
 	float tmp = getModuleOfVector(partOfWall);
 	tmp /= 1; // size of wall texture in meters
-	if (obj.type == "wall") tmp = tmp - (int)tmp;
+	if (preset.name == "wall") tmp = tmp - (int)tmp;
 	else tmp /= obj.length;
 
-	sf::IntRect rect(obj.positionInTexture.x + obj.sizeInTexture.x * tmp,
-		obj.positionInTexture.y, width, obj.sizeInTexture.y);
-	if (obj.type == "wall") polygon.setTexture(Game::wallsTextures);
-	else polygon.setTexture(Game::spritesTextures);
+	sf::IntRect rect(preset.positionInTileMap.x + preset.sizeInTileMap.x * tmp,
+		preset.positionInTileMap.y, width, preset.sizeInTileMap.y);
+
+	polygon.setTexture(texturePack[preset.type]);
 	polygon.setTextureRect(rect);
 }
 
@@ -470,18 +479,17 @@ void State::set_type(string name) {
 	State::name = name;
 }
 
-void SpriteObject::setParameters(float x1, float y1, short xpick, short ypick, short wdth, 
-	short hght, float length, std::string name) {
-	SpriteObject::type = name;
-	SpriteObject::middlePos = Vector2f(x1, y1);
+void SpriteObject::setParameters(float x1, float y1, float length, SpritesPreset& preset) {
+	SpriteObject::preset = preset;
 
-	SpriteObject::positionInTexture = Vector2i(xpick, ypick);
-	SpriteObject::sizeInTexture = Vector2i(wdth, hght);
+	SpriteObject::middlePos = Vector2f(x1, y1);
 
 	SpriteObject::length = length;
 }
 
-void Wall::set_parameters(Vector2f leftPos, Vector2f rightPos, float sizeInPixels) {
+void Wall::set_parameters(Vector2f leftPos, Vector2f rightPos, SpritesPreset& preset) {
+	Wall::preset = preset;
+
 	Wall::leftPos = leftPos;
 	Wall::rightPos = rightPos;
 
@@ -489,17 +497,16 @@ void Wall::set_parameters(Vector2f leftPos, Vector2f rightPos, float sizeInPixel
 	Wall::middlePos = Vector2f(tmp.x / 2, tmp.y / 2) + leftPos;
 
 	Wall::length = getDistance(leftPos, rightPos);
-
-	Wall::sizeInPixels = sizeInPixels;
 }
 
 void SpritesPreset::setParameters(short type, std::string name,
-	Vector2i pos, Vector2i size) {
+	Vector2i pos, Vector2i size, float height, short shift) {
 	SpritesPreset::type = type;
 	SpritesPreset::name = name;
 
 	positionInTileMap = pos;
 	sizeInTileMap = size;
 
-
+	defaultHeight = height;
+	heightShift = shift;
 }
