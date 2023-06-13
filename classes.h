@@ -23,8 +23,8 @@ namespace objects {
 	const int MAX_COUNT_OF_WALLS = 100;
 	const short MAX_WALLS_AROUND = MAX_COUNT_OF_WALLS / 4;
 
-	const short MAX_COUNT_OF_SPRITES = 50;
-	const short MAX_SPRITES_AROUND = 30;
+	const short MAX_COUNT_OF_SPRITES = 32;
+	const short MAX_SPRITES_AROUND = 16;
 
 	const short MAX_COUNT_OF_FRAMES = 16;
 
@@ -33,7 +33,7 @@ namespace objects {
 	const std::string START_LEVEL = "levels/level1.txt";
 
 	const float PLAYER_SPEED = 2.5;
-	const float PLAYER_ROTATIONAL_SPEED = 0.1;
+	const float INTERACTION_RADIUS = 1.f;
 
 	class SpritesPreset {
 	public:
@@ -41,7 +41,7 @@ namespace objects {
 			Vector2i pos, Vector2i size, float height, short shift);
 
 		short type;
-		std::string name;
+		std::string name = "dsfgsfg";
 
 		Vector2i positionInTileMap;
 		Vector2i sizeInTileMap;
@@ -91,8 +91,8 @@ namespace objects {
 		float lastDistanceToPlayer;
 		Vector2f pointOfCollision;
 
-		float health;
-		bool isAlive;
+		float health = 100;
+		bool isAlive = true;
 	};
 
 	class Level {
@@ -129,13 +129,17 @@ namespace objects {
 		Vector2f direction;
 
 		float speed = PLAYER_SPEED;
-		float rotationalSpeed = PLAYER_ROTATIONAL_SPEED;
+
+		float delayTakeDamage = 0;
 
 		Vector2f position;
 
 		short health = 100;
 		short armour = 0;
 		short ammo = 10;
+		float damage = 65.f;
+
+		short kills = 0;
 		
 		int countOfWallsAround = 0;
 		Wall wallsAround[MAX_WALLS_AROUND];
@@ -200,6 +204,8 @@ namespace objects {
 		template <typename T>
 		void move(T& object, float dx, float dy, float time);
 
+		void shoot();
+
 		Vector2u winSize;
 
 		float stepInPixels;
@@ -221,6 +227,6 @@ namespace objects {
 		Vector2i centralMousePos = Vector2i(MAX_WIDTH / 2, MAX_HEIGHT / 2);
 
 		sf::Texture texturePack[4];
-		SpritesPreset presets[5];
+		SpritesPreset presets[16];
 	};
 }

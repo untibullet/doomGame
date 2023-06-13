@@ -53,10 +53,12 @@ int main()
                 window.close();
         }
 
+        game.update(time);
+
         game.viewController(window, mouse, time);
 
-        if (Mouse::isButtonPressed(Mouse::Left) && game.player.animation->type == "hold") {
-            game.player.animation = &game.player.animations[1];
+        if (Mouse::isButtonPressed(Mouse::Left)) {
+            game.shoot();
         }
 
         if (Keyboard::isKeyPressed(Keyboard::W)) {
@@ -73,8 +75,6 @@ int main()
         }
 
         mouse.setPosition(game.centralMousePos);
-
-        game.update(time);
 
         window.clear();
 

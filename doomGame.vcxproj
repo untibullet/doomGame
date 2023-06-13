@@ -153,8 +153,12 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\enemy.png" />
+    <Image Include="assets\shotgun.png" />
     <Image Include="assets\things.png" />
     <Image Include="assets\walls.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="assets\pixel_regular.ttf" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

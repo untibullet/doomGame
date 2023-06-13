@@ -14,19 +14,12 @@ using sf::RenderWindow;
 
 const sf::Color GROUNG_COLOR = sf::Color(100, 100, 100);
 const sf::Color SKYBOX_COLOR = sf::Color(35, 87, 97);
-const sf::Color WALL_COLOR = sf::Color::Blue;
+const sf::Color AMMO_TEXT_COLOR = sf::Color(191, 182, 57, 200);
 const sf::Color HP_TEXT_COLOR = sf::Color(181, 9, 15, 200);
-const sf::Color ARM_TEXT_COLOR = sf::Color(5, 150, 41, 200);
+const sf::Color ARM_TEXT_COLOR = sf::Color(5, 14, 150, 200);
 
 Vector2f defaultPlayerPos = Vector2f(-4.56137, 0.51811);
 float defaultPlayerFAngle = 0.f;
-
-const Vector2f WALLS[14] = { Vector2f(0.f, 3.f), Vector2f(4.f, 2.f),
-Vector2f(4.f, 2.f), Vector2f(4.f, 6.f), Vector2f(0.f, 3.f), Vector2f(4.f, 6.f),
-Vector2f(9.f, -5.f),
-Vector2f(9.f, 8.f), Vector2f(9.f, -5.f), Vector2f(-4.f, -5.f),
-Vector2f(9, 8), Vector2f(-4, 8), Vector2f(-4, 8),Vector2f(-4, -5) };
-
 
 template <typename T>
 void sorting(T* arr, short count) {
@@ -93,7 +86,7 @@ Level Game::loadLevel(std::string levelPath) {
 	}
 	level.countOfWalls = count;
 
-	map >> count; // things
+	map >> count; // sprites
 	for (int i = 0; i < count; i++) {
 		float x1, y1, length;
 		short _preset;
@@ -101,7 +94,7 @@ Level Game::loadLevel(std::string levelPath) {
 		map >> x1;
 
 		if (x1 == -9999) {
-			count = i + 1;
+			count = i;
 			break;
 		}
 
@@ -116,25 +109,45 @@ Level Game::loadLevel(std::string levelPath) {
 }
 
 void Game::createPresets() {
-	// wall_0
+	// walls
 	presets[0].setParameters(0, "wall", Vector2i(0, 288), Vector2i(96, 96), 
 		wallSize, 0);
-
-	// wall_2
-	presets[1].setParameters(0, "wall", Vector2i(384, 288), Vector2i(96, 96),
+	presets[1].setParameters(0, "wall", Vector2i(0, 384), Vector2i(96, 96),
+		wallSize, 0);
+	presets[2].setParameters(0, "wall", Vector2i(480, 96), Vector2i(96, 96),
+		wallSize, 0);
+	presets[3].setParameters(0, "wall", Vector2i(288, 0), Vector2i(96, 96),
+		wallSize, 0);
+	presets[4].setParameters(0, "wall", Vector2i(384, 480), Vector2i(96, 96),
 		wallSize, 0);
 
 	float dh = winSize.y * 0.15;
 	short dst = winSize.y * 0.125;
 	// aidkit
-	presets[2].setParameters(1, "aidkit", Vector2i(17, 65), Vector2i(14, 14),
+	presets[5].setParameters(1, "aidkit", Vector2i(17, 65), Vector2i(14, 14),
+		dh, dst);
+	presets[6].setParameters(1, "aidkit", Vector2i(3, 34), Vector2i(11, 13),
+		dh, dst);
+	presets[7].setParameters(1, "aidkit", Vector2i(2, 82), Vector2i(12, 12),
 		dh, dst);
 	// for things: dst + (dh - h)
+	// armour
+	presets[8].setParameters(1, "armour", Vector2i(97, 33), Vector2i(14, 14),
+		dh, dst);
+	presets[9].setParameters(1, "armour", Vector2i(99, 2), Vector2i(10, 12),
+		dh, dst);
+	// ammo
+	presets[10].setParameters(1, "ammo", Vector2i(50, 99), Vector2i(11, 11),
+		dh, dst);
 
 	dh = winSize.y * 0.275;
 	dst = (wallSize - dh) / 2;
-	// enemy_0
-	presets[3].setParameters(2, "enemy_0", Vector2i(483, 208), Vector2i(41, 51),
+	// enemy
+	presets[11].setParameters(2, "enemy", Vector2i(483, 208), Vector2i(41, 51),
+		dh, dst);
+	presets[12].setParameters(2, "enemy", Vector2i(51, 208), Vector2i(41, 51),
+		dh, dst);
+	presets[13].setParameters(2, "enemy", Vector2i(195, 0), Vector2i(41, 51),
 		dh, dst);
 }
 
@@ -193,7 +206,12 @@ void Game::movementController(sf::Keyboard::Key key, float time) {
 	if (fabs(dx) < 0.000001) dx = 0;
 	if (fabs(dy) < 0.000001) dy = 0;
 
-	move(Game::player, dx, dy, time);
+	float distance = 1;
+	bool haveWall = false;
+	Vector2f point;
+	Wall collisionWall = findVisibleWall(haveWall, point, distance, acos(dx));
+
+	if (distance > 0.4 || !haveWall) move(Game::player, dx, dy, time);
 }
 
 template <typename T>
@@ -205,6 +223,53 @@ void Game::move(T& object, float dx, float dy, float time) {
 	x = dx * distance + object.position.x;
 	y = dy * distance + object.position.y;
 	object.position = Vector2f(x, y);
+}
+
+void Game::shoot() {
+	if (player.ammo <= 0 || player.animation->type != "hold") return;
+
+	player.animation = &player.animations[1];
+	player.ammo -= 2;
+
+	updateRenderingArrays();
+	updateSpriteObjectsAround();
+
+	SpriteObject sprite;
+	short n = 0;
+	bool wasHit = false;
+	for (int i = 0; i < level.countOfSpriteObjects; i++) {
+		sprite = level.spriteObjects[i];
+
+		if (sprite.preset.name != "enemy" || wasHit) {
+			level.spriteObjects[n] = sprite;
+			n++;
+			continue;
+		}
+
+		bool isHit = false;
+		checkCrossing(player.position, player.centralAngle, sprite.leftPos,
+			sprite.rightPos, isHit);
+
+		if (!isHit) {
+			level.spriteObjects[n] = sprite;
+			n++;
+			continue;
+		}
+
+		sprite.health -= player.damage;
+		wasHit = true;
+		std::cout << "hit" << std::endl;
+
+		continue;
+
+		if (sprite.health < 0) {
+			continue;
+		}
+		
+		level.spriteObjects[n] = sprite;
+		n++;
+	}
+	level.countOfSpriteObjects = n;
 }
 
 void Game::render(RenderWindow& win, float time) {
@@ -424,11 +489,11 @@ void Game::createPolygon(T obj, sf::Sprite& polygon, Vector2f point, float angle
 }
 
 void Game::drawInterface(RenderWindow& win) {
-	drawCrosshair(win);
+	// drawCrosshair(win);
 
 	drawWeapon(win);
 
-	//drawStats(win);
+	drawStats(win);
 }
 
 void Game::drawCrosshair(RenderWindow& win) {
@@ -476,8 +541,21 @@ void Game::drawStats(RenderWindow& win) {
 
 	stats.setFillColor(HP_TEXT_COLOR);
 	stats.setString("HP " + std::to_string(player.health));
-	stats.setPosition((float)winSize.x * 0.25,
-		(float)winSize.y * 0.8);
+	stats.setPosition((float)winSize.x * 0.1,
+		(float)winSize.y * 0.75);
+	win.draw(stats);
+
+	stats.setFillColor(ARM_TEXT_COLOR);
+	stats.setString("ARMOUR " + std::to_string(player.armour));
+	stats.setPosition((float)winSize.x * 0.1,
+		(float)winSize.y * 0.85);
+	win.draw(stats);
+
+	stats.setCharacterSize(52);
+	stats.setFillColor(AMMO_TEXT_COLOR);
+	stats.setString("AMMO " + std::to_string(player.ammo));
+	stats.setPosition((float)winSize.x * 0.8,
+		(float)winSize.y * 0.85);
 	win.draw(stats);
 }
 
@@ -487,6 +565,42 @@ void Game::update(float time) {
 	updateSpriteObjectsAround();
 
 	player.changeFrame(time);
+	if (player.delayTakeDamage > 0) {
+		player.delayTakeDamage -= time;
+	}
+
+	SpriteObject sprite;
+	short n = 0;
+	for (int i = 0; i < level.countOfSpriteObjects; i++) {
+		sprite = level.spriteObjects[i];
+		if (sprite.lastDistanceToPlayer > INTERACTION_RADIUS) {
+			level.spriteObjects[n] = sprite;
+			n++;
+			continue;
+		}
+
+		if (sprite.preset.name == "enemy" && player.delayTakeDamage <= 0) {
+			if (player.armour > 0) player.armour -= std::min(20, (int)player.armour);
+			else player.health -= 20;
+			player.delayTakeDamage = 1.f;
+		}
+		else if (sprite.preset.name == "aidkit" && player.health < 100) {
+			player.health += 25;
+			continue;
+		}
+		else if (sprite.preset.name == "armour") {
+			player.armour += 25;
+			continue;
+		}
+		else if (sprite.preset.name == "ammo") {
+			player.ammo += 10;
+			continue;
+		}
+
+		level.spriteObjects[n] = sprite;
+		n++;
+	}
+	level.countOfSpriteObjects = n;
 }
 
 void Game::updateRenderingArrays() {
@@ -502,7 +616,7 @@ void Game::updateRenderingArrays() {
 			continue;
 
 		player.wallsAround[n] = wall;
-		n++;
+		n += 1;
 	}
 	player.countOfWallsAround = n;
 
@@ -510,6 +624,7 @@ void Game::updateRenderingArrays() {
 	for (int i = 0; i < level.countOfSpriteObjects; i++) {
 		SpriteObject& obj = level.spriteObjects[i];
 		float dis = getDistance(obj.middlePos, player.position);
+		obj.lastDistanceToPlayer = dis;
 
 		if (dis > renderingRadius)
 			continue;
