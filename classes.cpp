@@ -15,6 +15,8 @@ using sf::RenderWindow;
 const sf::Color GROUNG_COLOR = sf::Color(100, 100, 100);
 const sf::Color SKYBOX_COLOR = sf::Color(35, 87, 97);
 const sf::Color WALL_COLOR = sf::Color::Blue;
+const sf::Color HP_TEXT_COLOR = sf::Color(181, 9, 15, 200);
+const sf::Color ARM_TEXT_COLOR = sf::Color(5, 150, 41, 200);
 
 Vector2f defaultPlayerPos = Vector2f(-4.56137, 0.51811);
 float defaultPlayerFAngle = 0.f;
@@ -171,19 +173,19 @@ void Game::movementController(sf::Keyboard::Key key, float time) {
 	Vector2f normVec = getNormalVector(playerDir);
 	bx = normVec.x, by = normVec.y;
 
-	if (key == Keyboard::W) {
+	if (key == sf::Keyboard::Key::W) {
 		dx = playerDir.x;
 		dy = playerDir.y;
 	}
-	else if (key == Keyboard::S) {
+	else if (key == sf::Keyboard::Key::S) {
 		dx = playerDir.x * -1;
 		dy = playerDir.y * -1;
 	}
-	else if (key == Keyboard::D) {
+	else if (key == sf::Keyboard::Key::D) {
 		dx = bx * -1;
 		dy = by * -1;
 	}
-	else if (key == Keyboard::A) {
+	else if (key == sf::Keyboard::Key::A) {
 		dx = bx;
 		dy = by;
 	}
@@ -425,6 +427,8 @@ void Game::drawInterface(RenderWindow& win) {
 	drawCrosshair(win);
 
 	drawWeapon(win);
+
+	drawStats(win);
 }
 
 void Game::drawCrosshair(RenderWindow& win) {
@@ -460,6 +464,21 @@ void Game::drawWeapon(RenderWindow& win) {
 	sprite.setPosition(wsize.x * 0.7 - a * (float)rect.width / 2, (float)wsize.y - (float)rect.height * b);
 
 	win.draw(sprite);
+}
+
+void Game::drawStats(RenderWindow& win) {
+	sf::Text stats;
+	sf::Font font;
+	font.loadFromFile("assets/pixel_regular.ttf");
+	stats.setFont(font);
+	stats.setCharacterSize(72);
+	stats.setStyle(sf::Text::Regular);
+
+	stats.setFillColor(HP_TEXT_COLOR);
+	stats.setString("HP " + std::to_string(player.health));
+	stats.setPosition((float)winSize.x * 0.25,
+		(float)winSize.y * 0.8);
+	win.draw(stats);
 }
 
 void Game::update(float time) {

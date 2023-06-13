@@ -55,6 +55,10 @@ int main()
 
         game.viewController(window, mouse, time);
 
+        if (Mouse::isButtonPressed(Mouse::Left) && game.player.animation->type == "hold") {
+            game.player.animation = &game.player.animations[1];
+        }
+
         if (Keyboard::isKeyPressed(Keyboard::W)) {
             game.movementController(Keyboard::W, time);
         }
@@ -66,10 +70,6 @@ int main()
         }
         if (Keyboard::isKeyPressed(Keyboard::D)) {
             game.movementController(Keyboard::D, time);
-        }
-
-        if (Mouse::isButtonPressed(Mouse::Left) && game.player.animation->type == "hold") {
-            game.player.animation = &game.player.animations[1];
         }
 
         mouse.setPosition(game.centralMousePos);

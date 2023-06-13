@@ -91,7 +91,8 @@ namespace objects {
 		float lastDistanceToPlayer;
 		Vector2f pointOfCollision;
 
-		float hitpoints;
+		float health;
+		bool isAlive;
 	};
 
 	class Level {
@@ -131,6 +132,10 @@ namespace objects {
 		float rotationalSpeed = PLAYER_ROTATIONAL_SPEED;
 
 		Vector2f position;
+
+		short health = 100;
+		short armour = 0;
+		short ammo = 10;
 		
 		int countOfWallsAround = 0;
 		Wall wallsAround[MAX_WALLS_AROUND];
@@ -170,6 +175,8 @@ namespace objects {
 
 		void drawWeapon(sf::RenderWindow& win);
 
+		void drawStats(sf::RenderWindow& win);
+
 		template <typename T>
 		void drawSprite(sf::RenderWindow& win, T& object, float distance, Vector2f point,
 			float maxAngle, float angle, short ray);
@@ -183,15 +190,15 @@ namespace objects {
 
 		void updateSpriteObjectsAround();
 
-		void movementController(sf::Keyboard::Key key, float time);
-
-		template <typename T>
-		void move(T& object, float dx, float dy, float time);
-
 		void viewController(sf::RenderWindow& win, sf::Mouse& mouse, float time);
 
 		template <typename T>
 		void rotate(T& object, short width, short delta, float time);
+
+		void movementController(sf::Keyboard::Key key, float time);
+
+		template <typename T>
+		void move(T& object, float dx, float dy, float time);
 
 		Vector2u winSize;
 
