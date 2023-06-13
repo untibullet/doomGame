@@ -17,7 +17,7 @@ const sf::Color SKYBOX_COLOR = sf::Color(35, 87, 97);
 const sf::Color WALL_COLOR = sf::Color::Blue;
 
 Vector2f defaultPlayerPos = Vector2f(-4.56137, 0.51811);
-float defaultPlayerFAngle = 6.06974;
+float defaultPlayerFAngle = 0.f;
 
 const Vector2f WALLS[14] = { Vector2f(0.f, 3.f), Vector2f(4.f, 2.f),
 Vector2f(4.f, 2.f), Vector2f(4.f, 6.f), Vector2f(0.f, 3.f), Vector2f(4.f, 6.f),
@@ -52,6 +52,7 @@ Game::Game(RenderWindow& win) {
 
 	Game::player.set_default(defaultPlayerFAngle, FOV);
 	Game::state.set_type("InGameplay");
+
 	Game::deltaAngle = Game::player.rfov / COUNT_OF_RAYS;
 
 	Game::texturePack[0].loadFromFile("assets/walls.png");
@@ -204,14 +205,14 @@ void Game::move(T& object, float dx, float dy, float time) {
 	object.position = Vector2f(x, y);
 }
 
-void Game::render(RenderWindow& win) {
+void Game::render(RenderWindow& win, float time) {
 	drawBackGround(win);
 
 	drawWalls(win);
 
 	// drawObjects(win);
 
-	// drawInterface(win);
+	drawInterface(win);
 }
 
 void Game::drawBackGround(RenderWindow& win) {
@@ -302,7 +303,7 @@ Wall Game::findVisibleWall(bool& haveWall, Vector2f& crossingPoint, float& dista
 }
 
 SpriteObject* Game::findVisibleSpriteObjects(int& count, float angle, float maxRenderDistance) {
-	SpriteObject output[MAX_SPRITES_AROUND];
+	SpriteObject* output = new SpriteObject[MAX_SPRITES_AROUND];
 
 	int n = 0;
 	bool isCrossing;
@@ -411,14 +412,56 @@ void Game::createPolygon(T obj, sf::Sprite& polygon, Vector2f point, float angle
 	if (preset.name == "wall") tmp = tmp - (int)tmp;
 	else tmp /= obj.length;
 
-	sf::IntRect rect(preset.positionInTileMap.x + preset.sizeInTileMap.x * tmp,
+	sf::IntRect rect = sf::IntRect(preset.positionInTileMap.x + preset.sizeInTileMap.x * tmp,
 		preset.positionInTileMap.y, width, preset.sizeInTileMap.y);
 
 	polygon.setTexture(texturePack[preset.type]);
 	polygon.setTextureRect(rect);
 }
 
-void Game::update() {
+void Game::drawInterface(RenderWindow& win) {
+	drawCrosshair(win);
+
+	drawWeapon(win);
+}
+
+void Game::drawCrosshair(RenderWindow& win) {
+	float radius = 10.f;
+	sf::CircleShape crosshair(radius);
+
+	crosshair.setFillColor(sf::Color(0, 0, 0, 0));
+	crosshair.setOutlineColor(sf::Color(125, 125, 125, 200));
+	crosshair.setOutlineThickness(4.f);
+
+	crosshair.setPosition(winSize.x / 2 - radius, winSize.y / 2 - radius);
+
+	win.draw(crosshair);
+}
+
+void Game::drawWeapon(RenderWindow& win) {
+	sf::Sprite sprite;
+	Animation anim = player.animation;
+
+	sprite.setTexture(anim.texture);
+
+	SpritesPreset& frame = anim.frames[anim.currentFrame];
+	int x = frame.positionInTileMap.x, y = frame.positionInTileMap.y;
+	int w = frame.sizeInTileMap.x, h = frame.sizeInTileMap.y;
+	sf::IntRect rect(x, y, w, h);
+
+	sprite.setTextureRect(rect);
+
+	Vector2u wsize = win.getSize();
+	float k = (float)rect.width / rect.height;
+	float a = ((float)wsize.x * 0.3) / rect.width, b = ((float)wsize.x * 0.2) / rect.height;
+	sprite.setScale(a, b);
+
+	sprite.setPosition(wsize.x * 0.75 - a * rect.width / 2, wsize.y - rect.height * b);
+
+	win.draw(sprite);
+}
+
+void Game::update(float time) {
 	updateRenderingArrays();
 
 	updateSpriteObjectsAround();
@@ -473,6 +516,20 @@ void Player::set_default(float angle, short fov) {
 	Player::fov = fov;
 	Player::rfov = (fov * M_PI) / 180;
 	Player::countOfWallsAround = 4;
+
+	Player::animations[0].texture.loadFromFile("assets/shotgun.png");
+	Player::animations[1].texture.loadFromFile("assets/shotgun.png");
+
+	createPresets();
+
+	animation = animations[0];
+}
+
+void Player::createPresets() {
+	Vector2f wsize = Vector2f(MAX_WIDTH, MAX_HEIGHT);
+	Animation& anim = animations[0];
+	anim.frames[0].setParameters(0, "hold", Vector2i(57, 65), Vector2i(102, 84),
+		wsize.x * 0.75, 0);
 }
 
 void State::set_type(string name) {

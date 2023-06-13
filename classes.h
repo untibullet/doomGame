@@ -14,7 +14,7 @@ namespace objects {
 	const short MAX_WIDTH = 1280, MAX_HEIGHT = 720;
 
 	const short FOV = 90;
-	const short COUNT_OF_RAYS = 160;
+	const short COUNT_OF_RAYS = 720;
 
 	const float MIN_DEVIATION = 0.000001;
 	const short NORMAL_DISTANCE = 4;
@@ -25,6 +25,8 @@ namespace objects {
 
 	const short MAX_COUNT_OF_SPRITES = 50;
 	const short MAX_SPRITES_AROUND = 30;
+
+	const short MAX_COUNT_OF_FRAMES = 16;
 
 	const short COUNT_OF_LEVELS = 10;
 
@@ -46,6 +48,23 @@ namespace objects {
 
 		float defaultHeight;
 		short heightShift;
+	};
+
+	class Animation {
+	public:
+		std::string type;
+
+		bool inProcess = false;
+
+		sf::Texture texture;
+
+		short countOfFrames;
+		short currentFrame = 0;
+
+		float lastTime;
+		float switchDelay;
+
+		SpritesPreset frames[MAX_COUNT_OF_FRAMES];
 	};
 
 	class Polygon {
@@ -97,6 +116,10 @@ namespace objects {
 	public:
 		void set_default(float angle, short fov);
 
+		void createPresets();
+
+		void changeAnimation();
+
 		short fov;
 		float rfov;
 		float centralAngle;
@@ -112,6 +135,9 @@ namespace objects {
 
 		int countOfSpriteObjectsAround;
 		SpriteObject spriteObjectsAround[MAX_COUNT_OF_SPRITES];
+
+		Animation animations[2];
+		Animation& animation = animations[0];
 	};
 
 	class Game {
@@ -122,7 +148,7 @@ namespace objects {
 
 		void createPresets();
 
-		void render(sf::RenderWindow& win);
+		void render(sf::RenderWindow& win, float time);
 
 		void drawBackGround(sf::RenderWindow& win);
 
@@ -138,6 +164,10 @@ namespace objects {
 
 		void drawInterface(sf::RenderWindow& win);
 
+		void drawCrosshair(sf::RenderWindow& win);
+
+		void drawWeapon(sf::RenderWindow& win);
+
 		template <typename T>
 		void drawSprite(sf::RenderWindow& win, T& object, float distance, Vector2f point,
 			float maxAngle, float angle, short ray);
@@ -145,7 +175,7 @@ namespace objects {
 		template <typename T>
 		void createPolygon(T object, sf::Sprite& polygon, Vector2f point, float angle);
 
-		void update();
+		void update(float time);
 
 		void updateRenderingArrays();
 
@@ -181,10 +211,7 @@ namespace objects {
 		float mouseSpeedCoef = 0.75;
 		Vector2i centralMousePos = Vector2i(MAX_WIDTH / 2, MAX_HEIGHT / 2);
 
-		sf::Texture texturePack[3];
-		SpritesPreset presets[4];
-
-		sf::Texture wallsTextures;
-		sf::Texture spritesTextures;
+		sf::Texture texturePack[4];
+		SpritesPreset presets[5];
 	};
 }

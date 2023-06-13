@@ -31,13 +31,20 @@ int main()
     Game game = Game(window);
 
     sf::Clock clock;
+    int fps = 0;
+    float timePerShot = 0; // seconds
 
     while (window.isOpen())
     {
         float time = clock.getElapsedTime().asSeconds();
         clock.restart();
 
-        // std::cout << 1.f / time << std::endl;
+        fps++;
+        timePerShot += time;
+        if (timePerShot > 1) {
+            timePerShot -= 1;
+            fps = 0;
+        }
 
         sf::Event event;
         while (window.pollEvent(event))
@@ -63,13 +70,11 @@ int main()
 
         mouse.setPosition(game.centralMousePos);
 
-        std::cout << game.player.position.x << " " << game.player.position.y << " " << game.player.centralAngle << std::endl;
-
-        game.update();
+        game.update(time);
 
         window.clear();
 
-        game.render(window);
+        game.render(window, time);
 
         window.display();
     }
