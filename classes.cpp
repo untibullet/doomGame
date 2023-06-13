@@ -428,7 +428,7 @@ void Game::drawInterface(RenderWindow& win) {
 
 	drawWeapon(win);
 
-	drawStats(win);
+	//drawStats(win);
 }
 
 void Game::drawCrosshair(RenderWindow& win) {
