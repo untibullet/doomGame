@@ -459,6 +459,8 @@ void Game::drawWeapon(RenderWindow& win) {
 	sprite.setPosition(wsize.x * 0.75 - a * rect.width / 2, wsize.y - rect.height * b);
 
 	win.draw(sprite);
+
+	delete anim;
 }
 
 void Game::update(float time) {
@@ -528,7 +530,7 @@ void Player::set_default(float angle, short fov) {
 void Player::createPresets() {
 	Vector2f wsize = Vector2f(MAX_WIDTH, MAX_HEIGHT);
 	Animation& anim = animations[0];
-	anim.frames[0].setParameters(0, "hold", Vector2i(57, 65), Vector2i(102, 84),
+	anim.frames[0].setParameters(0, "hold", Vector2i(56, 65), Vector2i(103, 84),
 		wsize.x * 0.75, 0);
 }
 
