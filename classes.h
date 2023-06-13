@@ -61,7 +61,7 @@ namespace objects {
 		short countOfFrames;
 		short currentFrame = 0;
 
-		float lastTime;
+		float lastTime = 0;
 		float switchDelay;
 
 		SpritesPreset frames[MAX_COUNT_OF_FRAMES];
@@ -90,6 +90,8 @@ namespace objects {
 
 		float lastDistanceToPlayer;
 		Vector2f pointOfCollision;
+
+		float hitpoints;
 	};
 
 	class Level {
@@ -118,7 +120,7 @@ namespace objects {
 
 		void createPresets();
 
-		void changeAnimation();
+		void changeFrame(float time);
 
 		short fov;
 		float rfov;
@@ -137,7 +139,7 @@ namespace objects {
 		SpriteObject spriteObjectsAround[MAX_COUNT_OF_SPRITES];
 
 		Animation animations[2];
-		Animation& animation = animations[0];
+		Animation* animation = &animations[0];
 	};
 
 	class Game {

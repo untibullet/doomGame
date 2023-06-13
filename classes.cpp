@@ -303,7 +303,7 @@ Wall Game::findVisibleWall(bool& haveWall, Vector2f& crossingPoint, float& dista
 }
 
 SpriteObject* Game::findVisibleSpriteObjects(int& count, float angle, float maxRenderDistance) {
-	SpriteObject* output = new SpriteObject[MAX_SPRITES_AROUND];
+	SpriteObject output[MAX_SPRITES_AROUND];
 
 	int n = 0;
 	bool isCrossing;
@@ -394,6 +394,8 @@ void Game::createPolygon(T obj, sf::Sprite& polygon, Vector2f point, float angle
 
 	SpritesPreset preset = obj.preset;
 
+	if (preset.type < 0 || preset.type > 50) return;
+
 	float alpha = getAngleBetweenVectors(fromBegin, fromEnd);
 
 	float width;
@@ -430,8 +432,8 @@ void Game::drawCrosshair(RenderWindow& win) {
 	sf::CircleShape crosshair(radius);
 
 	crosshair.setFillColor(sf::Color(0, 0, 0, 0));
-	crosshair.setOutlineColor(sf::Color(125, 125, 125, 200));
-	crosshair.setOutlineThickness(4.f);
+	crosshair.setOutlineColor(sf::Color(10, 185, 10, 200));
+	crosshair.setOutlineThickness(2.f);
 
 	crosshair.setPosition(winSize.x / 2 - radius, winSize.y / 2 - radius);
 
@@ -440,11 +442,11 @@ void Game::drawCrosshair(RenderWindow& win) {
 
 void Game::drawWeapon(RenderWindow& win) {
 	sf::Sprite sprite;
-	Animation anim = player.animation;
+	Animation* anim = player.animation;
 
-	sprite.setTexture(anim.texture);
+	sprite.setTexture(anim->texture);
 
-	SpritesPreset& frame = anim.frames[anim.currentFrame];
+	SpritesPreset& frame = anim->frames[anim->currentFrame];
 	int x = frame.positionInTileMap.x, y = frame.positionInTileMap.y;
 	int w = frame.sizeInTileMap.x, h = frame.sizeInTileMap.y;
 	sf::IntRect rect(x, y, w, h);
@@ -452,21 +454,20 @@ void Game::drawWeapon(RenderWindow& win) {
 	sprite.setTextureRect(rect);
 
 	Vector2u wsize = win.getSize();
-	float k = (float)rect.width / rect.height;
-	float a = ((float)wsize.x * 0.3) / rect.width, b = ((float)wsize.x * 0.2) / rect.height;
-	sprite.setScale(a, b);
+	float a = 3, b = 2.7;
+	sprite.setScale(3, 2.7);
 
-	sprite.setPosition(wsize.x * 0.75 - a * rect.width / 2, wsize.y - rect.height * b);
+	sprite.setPosition(wsize.x * 0.7 - a * (float)rect.width / 2, (float)wsize.y - (float)rect.height * b);
 
 	win.draw(sprite);
-
-	delete anim;
 }
 
 void Game::update(float time) {
 	updateRenderingArrays();
 
 	updateSpriteObjectsAround();
+
+	player.changeFrame(time);
 }
 
 void Game::updateRenderingArrays() {
@@ -524,14 +525,53 @@ void Player::set_default(float angle, short fov) {
 
 	createPresets();
 
-	animation = animations[0];
+	animation = &animations[0];
 }
 
 void Player::createPresets() {
 	Vector2f wsize = Vector2f(MAX_WIDTH, MAX_HEIGHT);
-	Animation& anim = animations[0];
-	anim.frames[0].setParameters(0, "hold", Vector2i(56, 65), Vector2i(103, 84),
-		wsize.x * 0.75, 0);
+	Animation* anim = &animations[0];
+	anim->type = "hold";
+	anim->countOfFrames = 1;
+	anim->switchDelay = 0.25;
+	anim->frames[0].setParameters(0, "hold", Vector2i(56, 65), Vector2i(103, 84), 0, 0);
+
+	anim = &animations[1];
+	anim->type = "shot&reload";
+	anim->countOfFrames = 12;
+	anim->switchDelay = 0.125;
+	anim->frames[0].setParameters(0, "shot", Vector2i(171, 40), Vector2i(116, 109), 0, 0);
+	anim->frames[1].setParameters(0, "reload", Vector2i(295, 45), Vector2i(95, 106), 0, 0);
+	anim->frames[2].setParameters(0, "reload", Vector2i(408, 28), Vector2i(96, 127), 0, 0);
+	anim->frames[3].setParameters(0, "reload", Vector2i(518, 7), Vector2i(105, 153), 0, 0);
+	anim->frames[4].setParameters(0, "reload", Vector2i(636, 2), Vector2i(104, 160), 0, 0);
+	anim->frames[5].setParameters(0, "reload", Vector2i(103, 156), Vector2i(106, 139), 0, 0);
+	anim->frames[6].setParameters(0, "reload", Vector2i(235, 201), Vector2i(90, 93), 0, 0);
+	anim->frames[7].setParameters(0, "reload", Vector2i(363, 228), Vector2i(76, 68), 0, 0);
+	anim->frames[8].setParameters(0, "reload", Vector2i(452, 229), Vector2i(76, 69), 0, 0);
+	anim->frames[9].setParameters(0, "reload", Vector2i(557, 199), Vector2i(90, 93), 0, 0);
+	anim->frames[10].setParameters(0, "reload", Vector2i(675, 179), Vector2i(106, 139), 0, 0);
+	anim->frames[11].setParameters(0, "hold", Vector2i(56, 65), Vector2i(103, 84), 0, 0);
+}
+
+void Player::changeFrame(float time) {
+	Animation* anim = animation;
+
+	if (anim->type == "hold") return;
+
+	if (anim->currentFrame == anim->countOfFrames) {
+		anim->currentFrame = 0;
+		anim->lastTime = 0;
+		animation = &animations[0];
+
+		return;
+	}
+
+	anim->lastTime += time;
+	if (anim->lastTime > anim->switchDelay) {
+		anim->lastTime -= anim->switchDelay;
+		anim->currentFrame++;
+	}
 }
 
 void State::set_type(string name) {
